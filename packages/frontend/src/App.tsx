@@ -2,6 +2,7 @@ import { Routes, Route, Link, useLocation } from "react-router-dom";
 import UsersTab from "./components/UsersTab";
 import ProductsTab from "./components/ProductsTab";
 import OrdersTab from "./components/OrdersTab";
+import TypeExamplesPage from "./pages/TypeExamplesPage";
 import "./App.css";
 
 function App() {
@@ -34,6 +35,12 @@ function App() {
         >
           🛒 Orders
         </Link>
+        <Link
+          to="/examples"
+          className={`tab ${currentTab === "examples" ? "active" : ""}`}
+        >
+          🎯 Type Examples
+        </Link>
       </nav>
 
       <main className="content">
@@ -42,6 +49,7 @@ function App() {
           <Route path="/users" element={<UsersTab />} />
           <Route path="/products" element={<ProductsTab />} />
           <Route path="/orders" element={<OrdersTab />} />
+          <Route path="/examples" element={<TypeExamplesPage />} />
         </Routes>
       </main>
 
