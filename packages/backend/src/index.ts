@@ -5,9 +5,23 @@ import { swaggerDocument } from './swagger';
 import { usersRouter } from './routes/users';
 import { productsRouter } from './routes/products';
 import { ordersRouter } from './routes/orders';
+import { initializeDatabase, seedDatabase } from './db/database';
+import { RepositoryFactory } from './repositories/RepositoryFactory';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Initialize database if using SQLite
+if (process.env.USE_SQLITE === 'true') {
+  console.log('🗄️  Initializing SQLite database...');
+  initializeDatabase();
+  seedDatabase();
+  console.log('✅ Database initialized and seeded');
+} else {
+  console.log('💾 Using in-memory data storage');
+}
+
+console.log(`📦 Repository type: ${RepositoryFactory.getRepositoryType()}`);
 
 // Middleware
 app.use(cors());

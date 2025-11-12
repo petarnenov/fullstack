@@ -8,3 +8,9 @@ build
 coverage
 .vscode
 .idea
+
+# SQLite database files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
