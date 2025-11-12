@@ -1,0 +1,21 @@
+{
+	"name": "fullstack-monorepo",
+	"version": "1.0.0",
+	"private": true,
+	"workspaces": [
+		"packages/*"
+	],
+	"scripts": {
+		"dev": "npm run generate:types && concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+		"dev:backend": "npm run dev --workspace=backend",
+		"dev:frontend": "npm run dev --workspace=frontend",
+		"build": "npm run build --workspaces",
+		"build:backend": "npm run build --workspace=backend",
+		"build:frontend": "npm run build --workspace=frontend",
+		"generate:types": "npm run generate:types --workspace=backend"
+	},
+	"devDependencies": {
+		"concurrently": "^8.2.2",
+		"typescript": "^5.6.3"
+	}
+}
