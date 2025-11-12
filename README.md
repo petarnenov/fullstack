@@ -1,53 +1,57 @@
 # Fullstack Monorepo - Proof of Concept
 
-Монорепо проект с React 19 фронтенд и Express бекенд с **автоматична TypeScript генерация от Swagger**.
+Monorepo project with React 19 frontend and Express backend with **automatic TypeScript generation from Swagger**.
 
 ## 🚀 Quick Start
 
-Проектът е **вече стартиран** и работи:
+The project is **already running**:
 
 - **Frontend**: <http://localhost:5173>
 - **Backend**: <http://localhost:3000>
 - **Swagger UI**: <http://localhost:3000/api-docs>
 
-### Стартиране
+### Starting the Project
 
 ```bash
-npm run dev  # Генерира типове и стартира backend + frontend
+npm run dev  # Generates types and starts backend + frontend
 ```
 
-TypeScript типовете се генерират **автоматично** при всеки dev старт от Swagger спецификацията.
+TypeScript types are generated **automatically** on every dev start from the Swagger specification.
 
-### Ръчно генериране на типове
+### Manual Type Generation
 
 ```bash
 npm run generate:types
 ```
 
-За повече информация вижте [QUICKSTART.md](./QUICKSTART.md) и [TYPE_GENERATION.md](./TYPE_GENERATION.md)
+For more information see [QUICKSTART.md](./QUICKSTART.md) and [TYPE_GENERATION.md](./TYPE_GENERATION.md)
 
-## 📋 Документация
+## 📋 Documentation
 
-### Стартиране и Setup
-- **[QUICKSTART.md](./QUICKSTART.md)** - Бързи инструкции за стартиране
-- **[USAGE.md](./USAGE.md)** - Пълна документация за употреба
-- **[PROJECT_SUMMARY.md](./PROJECT_SUMMARY.md)** - Технически детайли
+### Getting Started
+- **[QUICKSTART.md](./QUICKSTART.md)** - Quick start instructions
+- **[USAGE.md](./USAGE.md)** - Complete usage documentation
+- **[PROJECT_SUMMARY.md](./PROJECT_SUMMARY.md)** - Technical details
 
-### Type Generation (⭐ Важно)
-- **[AUTO_TYPE_GENERATION.md](./AUTO_TYPE_GENERATION.md)** - Автоматична генерация при dev старт
-- **[TYPE_GENERATION.md](./TYPE_GENERATION.md)** - Пълно ръководство за типове
-- **[PROP_RENAME_GUIDE.md](./PROP_RENAME_GUIDE.md)** - 🔧 Как да променяш property имена
-- **[SWAGGER_INTEGRATION.md](./SWAGGER_INTEGRATION.md)** - Swagger интеграция
+### Type Generation (⭐ Important)
+- **[AUTO_TYPE_GENERATION.md](./AUTO_TYPE_GENERATION.md)** - Automatic generation on dev start
+- **[TYPE_GENERATION.md](./TYPE_GENERATION.md)** - Complete type generation guide
+- **[PROP_RENAME_GUIDE.md](./PROP_RENAME_GUIDE.md)** - 🔧 How to rename properties
+- **[SWAGGER_INTEGRATION.md](./SWAGGER_INTEGRATION.md)** - Swagger integration
+
+### Database & Architecture
+- **[packages/backend/REPOSITORY_PATTERN.md](./packages/backend/REPOSITORY_PATTERN.md)** - Repository pattern documentation
+- **[packages/backend/TEST_DATABASE.md](./packages/backend/TEST_DATABASE.md)** - Test database setup
 
 ## 🎯 Features
 
-### Landing Page с 3 таба
+### Landing Page with 3 Tabs
 
-1. **👥 Потребители** - CRUD операции
-2. **📦 Продукти** - Управление на продукти
-3. **🛒 Поръчки** - Система за поръчки
+1. **👥 Users** - CRUD operations
+2. **📦 Products** - Product management
+3. **🛒 Orders** - Order system
 
-## 💻 Технологии
+## 💻 Technologies
 
 ### Frontend
 
@@ -65,36 +69,48 @@ npm run generate:types
 - Swagger/OpenAPI
 - Zod
 - TypeScript
+- SQLite (better-sqlite3)
+- Repository Pattern
 
-## Структура
+## 🗄️ Database Options
+
+The project supports three database configurations:
+
+1. **In-Memory Arrays** (default) - `USE_SQLITE=false`
+2. **SQLite File** - `USE_SQLITE=true`
+3. **SQLite In-Memory Test** - `NODE_ENV=test`
+
+See [REPOSITORY_PATTERN.md](./packages/backend/REPOSITORY_PATTERN.md) for details.
+
+## Structure
 
 ```
 fullstack/
 ├── packages/
-│   ├── backend/     # Express API сървър
-│   └── frontend/    # React приложение
-└── package.json     # Root workspace конфигурация
+│   ├── backend/     # Express API server
+│   └── frontend/    # React application
+└── package.json     # Root workspace configuration
 ```
 
-## Инсталация
+## Installation
 
 ```bash
 npm install
 ```
 
-## Стартиране
+## Running the Project
 
-### Развойна среда
+### Development Mode
 ```bash
 npm run dev
 ```
 
-Това ще стартира едновременно:
-- Backend на http://localhost:3000
-- Frontend на http://localhost:5173
-- Swagger UI на http://localhost:3000/api-docs
+This will start simultaneously:
+- Backend at http://localhost:3000
+- Frontend at http://localhost:5173
+- Swagger UI at http://localhost:3000/api-docs
 
-### Отделно стартиране
+### Running Separately
 
 Backend:
 ```bash
@@ -106,10 +122,17 @@ Frontend:
 npm run dev:frontend
 ```
 
-## Генериране на типове от Swagger
+## Testing
+
+```bash
+npm test              # Run tests
+npm run test:watch    # Run tests in watch mode
+```
+
+## Generate Types from Swagger
 
 ```bash
 npm run generate:types
 ```
 
-Това автоматично генерира TypeScript типове от Swagger дефинициите и ги споделя между frontend и backend.
+This automatically generates TypeScript types from Swagger definitions and shares them between frontend and backend.
