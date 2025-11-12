@@ -7,11 +7,15 @@ import { InMemoryOrderRepository } from './memory/InMemoryOrderRepository';
 import { SqliteUserRepository } from './sqlite/SqliteUserRepository';
 import { SqliteProductRepository } from './sqlite/SqliteProductRepository';
 import { SqliteOrderRepository } from './sqlite/SqliteOrderRepository';
+import { TestSqliteUserRepository } from './test/TestSqliteUserRepository';
+import { TestSqliteProductRepository } from './test/TestSqliteProductRepository';
+import { TestSqliteOrderRepository } from './test/TestSqliteOrderRepository';
 
-type RepositoryType = 'memory' | 'sqlite';
+type RepositoryType = 'memory' | 'sqlite' | 'test';
 
 export class RepositoryFactory {
   private static repositoryType: RepositoryType = 
+    process.env.NODE_ENV === 'test' ? 'test' :
     process.env.USE_SQLITE === 'true' ? 'sqlite' : 'memory';
 
   static setRepositoryType(type: RepositoryType): void {
@@ -23,6 +27,9 @@ export class RepositoryFactory {
   }
 
   static getUserRepository(): IUserRepository {
+    if (this.repositoryType === 'test') {
+      return new TestSqliteUserRepository();
+    }
     if (this.repositoryType === 'sqlite') {
       return new SqliteUserRepository();
     }
@@ -30,6 +37,9 @@ export class RepositoryFactory {
   }
 
   static getProductRepository(): IProductRepository {
+    if (this.repositoryType === 'test') {
+      return new TestSqliteProductRepository();
+    }
     if (this.repositoryType === 'sqlite') {
       return new SqliteProductRepository();
     }
@@ -37,6 +47,9 @@ export class RepositoryFactory {
   }
 
   static getOrderRepository(): IOrderRepository {
+    if (this.repositoryType === 'test') {
+      return new TestSqliteOrderRepository();
+    }
     if (this.repositoryType === 'sqlite') {
       return new SqliteOrderRepository();
     }

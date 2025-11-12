@@ -6,13 +6,19 @@ import { usersRouter } from './routes/users';
 import { productsRouter } from './routes/products';
 import { ordersRouter } from './routes/orders';
 import { initializeDatabase, seedDatabase } from './db/database';
+import { initializeTestDatabase, seedTestDatabase } from './db/testDatabase';
 import { RepositoryFactory } from './repositories/RepositoryFactory';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Initialize database if using SQLite
-if (process.env.USE_SQLITE === 'true') {
+// Initialize database based on environment
+if (process.env.NODE_ENV === 'test') {
+  console.log('🧪 Initializing test SQLite database (in-memory)...');
+  initializeTestDatabase();
+  seedTestDatabase();
+  console.log('✅ Test database initialized and seeded');
+} else if (process.env.USE_SQLITE === 'true') {
   console.log('🗄️  Initializing SQLite database...');
   initializeDatabase();
   seedDatabase();
