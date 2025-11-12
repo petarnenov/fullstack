@@ -1,7 +1,15 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 
 const dbPath = process.env.DB_PATH || path.join(__dirname, '../../data/app.db');
+
+// Ensure the directory exists before creating the database
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
 export const db = new Database(dbPath);
 
 // Enable foreign keys
@@ -39,9 +47,10 @@ export function initializeDatabase() {
       customer_id TEXT NOT NULL,
       product_id TEXT NOT NULL,
       quantity INTEGER NOT NULL,
-      total REAL NOT NULL,
-      status TEXT NOT NULL DEFAULT 'pending',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      total_price REAL NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (customer_id) REFERENCES users(id),
+      FOREIGN KEY (product_id) REFERENCES products(id)
     )
   `);
 
@@ -97,19 +106,19 @@ export function seedDatabase() {
   
   if (orderCount.count === 0) {
     const insertOrder = db.prepare(`
-      INSERT INTO orders (id, customer_id, product_id, quantity, total, status)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO orders (id, customer_id, product_id, quantity, total_price)
+      VALUES (?, ?, ?, ?, ?)
     `);
 
     const insertMany = db.transaction((orders: any[]) => {
       for (const order of orders) {
-        insertOrder.run(order.id, order.customerId, order.productId, order.quantity, order.total, order.status);
+        insertOrder.run(order.id, order.customerId, order.productId, order.quantity, order.total);
       }
     });
 
     insertMany([
-      { id: '1', customerId: '1', productId: '1', quantity: 1, total: 2500, status: 'completed' },
-      { id: '2', customerId: '2', productId: '2', quantity: 2, total: 300, status: 'pending' },
+      { id: '1', customerId: '1', productId: '1', quantity: 1, total: 2500 },
+      { id: '2', customerId: '2', productId: '2', quantity: 2, total: 300 },
     ]);
 
     console.log('✅ Orders seeded');
