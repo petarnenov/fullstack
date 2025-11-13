@@ -9,11 +9,12 @@ The project is **already running**:
 - **Frontend**: <http://localhost:5173>
 - **Backend**: <http://localhost:3000>
 - **Swagger UI**: <http://localhost:3000/api-docs>
+- **Micro Frontend**: <http://localhost:5174>
 
 ### Starting the Project
 
 ```bash
-npm run dev  # Generates types and starts backend + frontend
+npm run dev  # Generates types, builds micro-frontend, and starts all servers
 ```
 
 TypeScript types are generated **automatically** on every dev start from the Swagger specification.
@@ -43,6 +44,11 @@ For more information see [QUICKSTART.md](./QUICKSTART.md) and [TYPE_GENERATION.m
 - **[packages/backend/REPOSITORY_PATTERN.md](./packages/backend/REPOSITORY_PATTERN.md)** - Repository pattern documentation
 - **[packages/backend/TEST_DATABASE.md](./packages/backend/TEST_DATABASE.md)** - Test database setup
 
+### Micro Frontend
+- **Micro Frontend Architecture** - Module Federation with runtime code sharing
+- **Independent Deployment** - Micro frontend can be deployed separately
+- **Shared Dependencies** - React 19 shared as singleton between host and remote
+
 ## 🎯 Features
 
 ### Landing Page with 3 Tabs
@@ -50,10 +56,12 @@ For more information see [QUICKSTART.md](./QUICKSTART.md) and [TYPE_GENERATION.m
 1. **👥 Users** - CRUD operations
 2. **📦 Products** - Product management
 3. **🛒 Orders** - Order system
+4. **🎯 Type Examples** - TypeScript utilities showcase
+5. **🎨 Micro Frontend** - Module Federation demo
 
 ## 💻 Technologies
 
-### Frontend
+### Frontend (Host App)
 
 - React 19.2.0
 - Vite 6
@@ -62,6 +70,15 @@ For more information see [QUICKSTART.md](./QUICKSTART.md) and [TYPE_GENERATION.m
 - TanStack Query (React Query)
 - Zod
 - TypeScript
+- Module Federation (@originjs/vite-plugin-federation)
+
+### Micro Frontend (Remote App)
+
+- React 19.2.0
+- Vite 6
+- TypeScript
+- Module Federation (@originjs/vite-plugin-federation)
+- Shared React singleton with host app
 
 ### Backend
 
@@ -87,9 +104,10 @@ See [REPOSITORY_PATTERN.md](./packages/backend/REPOSITORY_PATTERN.md) for detail
 ```
 fullstack/
 ├── packages/
-│   ├── backend/     # Express API server
-│   └── frontend/    # React application
-└── package.json     # Root workspace configuration
+│   ├── backend/        # Express API server
+│   ├── frontend/       # React application (host)
+│   └── micro-frontend/ # Micro frontend (remote)
+└── package.json        # Root workspace configuration
 ```
 
 ## Installation
@@ -108,6 +126,7 @@ npm run dev
 This will start simultaneously:
 - Backend at http://localhost:3000
 - Frontend at http://localhost:5173
+- Micro Frontend at http://localhost:5174 (preview mode)
 - Swagger UI at http://localhost:3000/api-docs
 
 ### Running Separately
@@ -120,6 +139,25 @@ npm run dev:backend
 Frontend:
 ```bash
 npm run dev:frontend
+```
+
+Micro Frontend:
+```bash
+npm run dev:micro  # Runs in preview mode
+```
+
+### Building
+
+Build all packages:
+```bash
+npm run build
+```
+
+Build specific package:
+```bash
+npm run build:backend
+npm run build:frontend
+npm run build:micro
 ```
 
 ## Testing
