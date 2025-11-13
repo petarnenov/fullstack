@@ -1,4 +1,4 @@
-.order-form-container {
+.orderFormContainer {
   background: linear-gradient(
     135deg,
     rgba(99, 102, 241, 0.1) 0%,
@@ -13,18 +13,18 @@
   transition: all 0.3s ease;
 }
 
-.order-form-container:hover {
+.orderFormContainer:hover {
   transform: translateY(-2px);
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15),
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
 }
 
-.form-header {
+.formHeader {
   margin-bottom: 2rem;
   text-align: center;
 }
 
-.form-header h2 {
+.formHeader h2 {
   margin: 0 0 0.5rem 0;
   font-size: 1.75rem;
   font-weight: 700;
@@ -34,25 +34,25 @@
   background-clip: text;
 }
 
-.form-subtitle {
+.formSubtitle {
   margin: 0;
   font-size: 0.95rem;
   color: rgba(255, 255, 255, 0.7);
 }
 
-.order-form {
+.orderForm {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 }
 
-.form-group {
+.formGroup {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-.form-label {
+.formLabel {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -62,11 +62,11 @@
   letter-spacing: 0.3px;
 }
 
-.label-icon {
+.labelIcon {
   font-size: 1.1rem;
 }
 
-.form-input {
+.formInput {
   width: 100%;
   padding: 0.875rem 1rem;
   border-radius: 10px;
@@ -79,28 +79,28 @@
   outline: none;
 }
 
-.form-input::placeholder {
+.formInput::placeholder {
   color: rgba(255, 255, 255, 0.4);
 }
 
-.form-input:hover {
+.formInput:hover {
   border-color: rgba(255, 255, 255, 0.2);
   background: rgba(0, 0, 0, 0.25);
 }
 
-.form-input:focus {
+.formInput:focus {
   border-color: #667eea;
   background: rgba(0, 0, 0, 0.3);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1), 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-1px);
 }
 
-.form-input:disabled {
+.formInput:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.submit-button {
+.submitButton {
   margin-top: 0.5rem;
   padding: 1rem 2rem;
   border-radius: 12px;
@@ -122,7 +122,7 @@
   overflow: hidden;
 }
 
-.submit-button::before {
+.submitButton::before {
   content: "";
   position: absolute;
   top: 0;
@@ -138,34 +138,34 @@
   transition: left 0.5s ease;
 }
 
-.submit-button:hover::before {
+.submitButton:hover::before {
   left: 100%;
 }
 
-.submit-button:hover {
+.submitButton:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5),
     0 0 0 1px rgba(255, 255, 255, 0.2) inset;
 }
 
-.submit-button:active {
+.submitButton:active {
   transform: translateY(0);
   box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4),
     0 0 0 1px rgba(255, 255, 255, 0.1) inset;
 }
 
-.submit-button:disabled {
+.submitButton:disabled {
   background: rgba(150, 150, 150, 0.5);
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
 }
 
-.submit-button.loading {
+.submitButton.loading {
   pointer-events: none;
 }
 
-.button-icon {
+.buttonIcon {
   font-size: 1.2rem;
   animation: pulse 2s ease-in-out infinite;
 }
@@ -240,15 +240,15 @@
 
 /* Responsive */
 @media (max-width: 768px) {
-  .order-form-container {
+  .orderFormContainer {
     padding: 1.5rem;
   }
 
-  .form-header h2 {
+  .formHeader h2 {
     font-size: 1.5rem;
   }
 
-  .submit-button {
+  .submitButton {
     padding: 0.875rem 1.5rem;
   }
 }

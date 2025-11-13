@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ordersApi } from "../api";
-import "./OrderForm.css";
+import styles from "./OrderForm.module.css";
 
 export default function OrderForm() {
   const queryClient = useQueryClient();
@@ -44,18 +44,18 @@ export default function OrderForm() {
   };
 
   return (
-    <div className="order-form-container">
-      <div className="form-header">
+    <div className={styles.orderFormContainer}>
+      <div className={styles.formHeader}>
         <h2>📝 Create New Order</h2>
-        <p className="form-subtitle">
+        <p className={styles.formSubtitle}>
           Fill in the details below to create an order
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="order-form">
-        <div className="form-group">
-          <label htmlFor="customerId" className="form-label">
-            <span className="label-icon">👤</span>
+      <form onSubmit={handleSubmit} className={styles.orderForm}>
+        <div className={styles.formGroup}>
+          <label htmlFor="customerId" className={styles.formLabel}>
+            <span className={styles.labelIcon}>👤</span>
             Customer ID
           </label>
           <input
@@ -64,14 +64,14 @@ export default function OrderForm() {
             value={customerId}
             onChange={(e) => setCustomerId(e.target.value)}
             placeholder="e.g., customer_123"
-            className="form-input"
+            className={styles.formInput}
             disabled={createOrderMutation.isPending}
           />
         </div>
 
-        <div className="form-group">
-          <label htmlFor="productId" className="form-label">
-            <span className="label-icon">📦</span>
+        <div className={styles.formGroup}>
+          <label htmlFor="productId" className={styles.formLabel}>
+            <span className={styles.labelIcon}>📦</span>
             Product ID
           </label>
           <input
@@ -80,14 +80,14 @@ export default function OrderForm() {
             value={productId}
             onChange={(e) => setProductId(e.target.value)}
             placeholder="e.g., product_456"
-            className="form-input"
+            className={styles.formInput}
             disabled={createOrderMutation.isPending}
           />
         </div>
 
-        <div className="form-group">
-          <label htmlFor="quantity" className="form-label">
-            <span className="label-icon">🔢</span>
+        <div className={styles.formGroup}>
+          <label htmlFor="quantity" className={styles.formLabel}>
+            <span className={styles.labelIcon}>🔢</span>
             Quantity
           </label>
           <input
@@ -96,7 +96,7 @@ export default function OrderForm() {
             min="1"
             value={quantity}
             onChange={(e) => setQuantity(e.target.value)}
-            className="form-input"
+            className={styles.formInput}
             disabled={createOrderMutation.isPending}
           />
         </div>
@@ -104,18 +104,18 @@ export default function OrderForm() {
         <button
           type="submit"
           disabled={createOrderMutation.isPending}
-          className={`submit-button ${
-            createOrderMutation.isPending ? "loading" : ""
+          className={`${styles.submitButton} ${
+            createOrderMutation.isPending ? styles.loading : ""
           }`}
         >
           {createOrderMutation.isPending ? (
             <>
-              <span className="spinner"></span>
+              <span className={styles.spinner}></span>
               Creating...
             </>
           ) : (
             <>
-              <span className="button-icon">✨</span>
+              <span className={styles.buttonIcon}>✨</span>
               Create Order
             </>
           )}
@@ -124,8 +124,8 @@ export default function OrderForm() {
 
       {message && (
         <div
-          className={`message ${
-            message.startsWith("✅") ? "success" : "error"
+          className={`${styles.message} ${
+            message.startsWith("✅") ? styles.success : styles.error
           }`}
         >
           {message}
