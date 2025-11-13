@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { productsApi } from "../api";
 import { useState } from "react";
 import type { Product } from "../api";
+import styles from "../App.module.css";
 
 function ProductsTab() {
   const queryClient = useQueryClient();
@@ -42,17 +43,24 @@ function ProductsTab() {
     });
   };
 
-  if (isLoading) return <div className="tab-content loading">Loading...</div>;
+  if (isLoading)
+    return (
+      <div className={`${styles.tabContent} ${styles.loading}`}>Loading...</div>
+    );
   if (error)
-    return <div className="tab-content error">Error loading products</div>;
+    return (
+      <div className={`${styles.tabContent} ${styles.error}`}>
+        Error loading products
+      </div>
+    );
 
   return (
-    <div className="tab-content">
+    <div className={styles.tabContent}>
       <h2>📦 Products</h2>
 
-      <div className="data-grid">
+      <div className={styles.dataGrid}>
         {products?.map((product: Product) => (
-          <div key={product.id} className="card">
+          <div key={product.id} className={styles.card}>
             <h3>{product.name}</h3>
             {product.description && <p>{product.description}</p>}
             <p>
@@ -61,7 +69,9 @@ function ProductsTab() {
             <p>
               <span className="label">Stock:</span>{" "}
               <span
-                className={`badge ${product.inStock ? "success" : "danger"}`}
+                className={`${styles.badge} ${
+                  product.inStock ? styles.success : styles.danger
+                }`}
               >
                 {product.inStock ? "In Stock" : "Out of Stock"}
               </span>
@@ -70,10 +80,10 @@ function ProductsTab() {
         ))}
       </div>
 
-      <div className="form-section">
+      <div className={styles.formSection}>
         <h3>Add New Product</h3>
-        <form className="form" onSubmit={handleSubmit}>
-          <div className="form-group">
+        <form className={styles.form} onSubmit={handleSubmit}>
+          <div className={styles.formGroup}>
             <label>Name:</label>
             <input
               type="text"
@@ -82,7 +92,7 @@ function ProductsTab() {
               required
             />
           </div>
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>Description:</label>
             <input
               type="text"
@@ -90,7 +100,7 @@ function ProductsTab() {
               onChange={(e) => setDescription(e.target.value)}
             />
           </div>
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>Price:</label>
             <input
               type="number"
@@ -100,7 +110,7 @@ function ProductsTab() {
               required
             />
           </div>
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>
               <input
                 type="checkbox"
@@ -112,7 +122,7 @@ function ProductsTab() {
           </div>
           <button
             type="submit"
-            className="btn"
+            className={styles.btn}
             disabled={createMutation.isPending}
           >
             {createMutation.isPending ? "Adding..." : "Add Product"}

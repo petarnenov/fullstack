@@ -4,7 +4,7 @@ import UsersTab from "./pages/UsersTab";
 import ProductsTab from "./pages/ProductsTab";
 import OrdersTab from "./pages/OrdersTab";
 import TypeExamplesPage from "./pages/TypeExamplesPage";
-import "./App.css";
+import styles from "./App.module.css";
 
 // Lazy load micro frontend component
 const MicroPage = lazy(() => import("microFrontend/MicroPage"));
@@ -14,46 +14,56 @@ function App() {
   const currentTab = location.pathname.slice(1) || "users";
 
   return (
-    <div className="app">
-      <header className="header">
+    <div className={styles.app}>
+      <header className={styles.header}>
         <h1>🚀 Fullstack Monorepo - Proof of Concept</h1>
-        <p className="subtitle">React 19.2 + Express + TypeScript</p>
+        <p className={styles.subtitle}>React 19.2 + Express + TypeScript</p>
       </header>
 
-      <nav className="tabs">
+      <nav className={styles.tabs}>
         <Link
           to="/users"
-          className={`tab ${currentTab === "users" ? "active" : ""}`}
+          className={`${styles.tab} ${
+            currentTab === "users" ? styles.active : ""
+          }`}
         >
           👥 Users
         </Link>
         <Link
           to="/products"
-          className={`tab ${currentTab === "products" ? "active" : ""}`}
+          className={`${styles.tab} ${
+            currentTab === "products" ? styles.active : ""
+          }`}
         >
           📦 Products
         </Link>
         <Link
           to="/orders"
-          className={`tab ${currentTab === "orders" ? "active" : ""}`}
+          className={`${styles.tab} ${
+            currentTab === "orders" ? styles.active : ""
+          }`}
         >
           🛒 Orders
         </Link>
         <Link
           to="/examples"
-          className={`tab ${currentTab === "examples" ? "active" : ""}`}
+          className={`${styles.tab} ${
+            currentTab === "examples" ? styles.active : ""
+          }`}
         >
           🎯 Type Examples
         </Link>
         <Link
           to="/micro"
-          className={`tab ${currentTab === "micro" ? "active" : ""}`}
+          className={`${styles.tab} ${
+            currentTab === "micro" ? styles.active : ""
+          }`}
         >
           🎨 Micro Frontend
         </Link>
       </nav>
 
-      <main className="content">
+      <main className={styles.content}>
         <Routes>
           <Route path="/" element={<UsersTab />} />
           <Route path="/users" element={<UsersTab />} />
@@ -71,7 +81,7 @@ function App() {
         </Routes>
       </main>
 
-      <footer className="footer">
+      <footer className={styles.footer}>
         <p>
           Types are automatically generated from Swagger and shared between FE
           and BE

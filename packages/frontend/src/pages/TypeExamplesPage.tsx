@@ -17,6 +17,7 @@ import DebounceDemo from "../components/examples/DebounceDemo";
 import ToggleDemo from "../components/examples/ToggleDemo";
 import HelperFunctionsDemo from "../components/examples/HelperFunctionsDemo";
 import TypeSafetyNotes from "../components/examples/TypeSafetyNotes";
+import styles from "../App.module.css";
 
 export default function TypeExamplesPage() {
   // ========== State Examples ==========
@@ -73,7 +74,7 @@ export default function TypeExamplesPage() {
   };
 
   return (
-    <div className="type-examples-page" style={{ padding: "2rem" }}>
+    <div className={styles.tabContent} style={{ padding: "2rem" }}>
       <h1>TypeScript Type Examples & Utilities</h1>
       <p style={{ color: "#666", marginBottom: "2rem" }}>
         This page demonstrates type-safe components, hooks, and helper functions

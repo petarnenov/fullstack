@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ordersApi } from "../api";
 import { useState } from "react";
 import type { Order } from "../api";
+import styles from "../App.module.css";
 
 function OrdersTab() {
   const queryClient = useQueryClient();
@@ -39,9 +40,16 @@ function OrdersTab() {
     });
   };
 
-  if (isLoading) return <div className="tab-content loading">Loading...</div>;
+  if (isLoading)
+    return (
+      <div className={`${styles.tabContent} ${styles.loading}`}>Loading...</div>
+    );
   if (error)
-    return <div className="tab-content error">Error loading orders</div>;
+    return (
+      <div className={`${styles.tabContent} ${styles.error}`}>
+        Error loading orders
+      </div>
+    );
 
   const getStatusBadge = (status?: string) => {
     const badges: Record<string, string> = {
@@ -64,12 +72,12 @@ function OrdersTab() {
   };
 
   return (
-    <div className="tab-content">
+    <div className={styles.tabContent}>
       <h2>🛒 Orders</h2>
 
-      <div className="data-grid">
+      <div className={styles.dataGrid}>
         {orders?.map((order: Order) => (
-          <div key={order.id} className="card">
+          <div key={order.id} className={styles.card}>
             <h3>Order #{order.id}</h3>
             <p>
               <span className="label">Customer ID:</span> {order.customerId}
@@ -85,7 +93,11 @@ function OrdersTab() {
             </p>
             <p>
               <span className="label">Status:</span>{" "}
-              <span className={`badge ${getStatusBadge(order.status)}`}>
+              <span
+                className={`${styles.badge} ${
+                  styles[getStatusBadge(order.status)]
+                }`}
+              >
                 {getStatusText(order.status)}
               </span>
             </p>
@@ -93,10 +105,10 @@ function OrdersTab() {
         ))}
       </div>
 
-      <div className="form-section">
+      <div className={styles.formSection}>
         <h3>Create New Order</h3>
-        <form className="form" onSubmit={handleSubmit}>
-          <div className="form-group">
+        <form className={styles.form} onSubmit={handleSubmit}>
+          <div className={styles.formGroup}>
             <label>Customer ID:</label>
             <input
               type="text"
@@ -106,7 +118,7 @@ function OrdersTab() {
               required
             />
           </div>
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>Product ID:</label>
             <input
               type="text"
@@ -116,7 +128,7 @@ function OrdersTab() {
               required
             />
           </div>
-          <div className="form-group">
+          <div className={styles.formGroup}>
             <label>Quantity:</label>
             <input
               type="number"
@@ -128,7 +140,7 @@ function OrdersTab() {
           </div>
           <button
             type="submit"
-            className="btn"
+            className={styles.btn}
             disabled={createMutation.isPending}
           >
             {createMutation.isPending ? "Creating..." : "Create Order"}
