@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import federation from '@originjs/vite-plugin-federation';
 
 const ReactCompilerConfig = {
   /* ... */
@@ -14,6 +15,13 @@ export default defineConfig({
         ],
       },
     }),
+    federation({
+      name: 'hostApp',
+      remotes: {
+        microFrontend: 'http://localhost:5174/assets/remoteEntry.js',
+      },
+      shared: ['react', 'react-dom'],
+    }),
   ],
   server: {
     port: 5173,
@@ -23,5 +31,8 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+  },
+  build: {
+    target: 'esnext',
   },
 });
