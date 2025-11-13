@@ -1,7 +1,7 @@
 import { Routes, Route, Link, useLocation } from "react-router-dom";
-import UsersTab from "./components/UsersTab";
-import ProductsTab from "./components/ProductsTab";
-import OrdersTab from "./components/OrdersTab";
+import UsersTab from "./pages/UsersTab";
+import ProductsTab from "./pages/ProductsTab";
+import OrdersTab from "./pages/OrdersTab";
 import TypeExamplesPage from "./pages/TypeExamplesPage";
 import "./App.css";
 
