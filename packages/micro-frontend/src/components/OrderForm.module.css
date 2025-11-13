@@ -11,6 +11,13 @@
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
     0 0 0 1px rgba(255, 255, 255, 0.05) inset;
   transition: all 0.3s ease;
+  /* Ensure isolation from parent styles */
+  isolation: isolate;
+  color: white;
+}
+
+.orderFormContainer * {
+  box-sizing: border-box;
 }
 
 .orderFormContainer:hover {
@@ -32,6 +39,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  color: transparent; /* Fallback for non-supporting browsers */
 }
 
 .formSubtitle {

@@ -4,17 +4,32 @@
   border-radius: 12px;
   color: white;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  /* Ensure complete isolation from parent styles */
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  isolation: isolate;
+}
+
+.microPage * {
+  box-sizing: border-box;
 }
 
 .microPage h1 {
   font-size: 2.5rem;
   margin-bottom: 1rem;
+  color: white;
+}
+
+.microPage h2,
+.microPage h3 {
+  color: white;
 }
 
 .microPage p {
   font-size: 1.1rem;
   margin-bottom: 1.5rem;
   opacity: 0.9;
+  color: white;
 }
 
 .counterSection {
