@@ -20,7 +20,7 @@ export default defineConfig({
       remotes: {
         microFrontend: 'http://localhost:5174/assets/remoteEntry.js',
       },
-      shared: ['react', 'react-dom'],
+      shared: ['react', 'react-dom', '@tanstack/react-query'],
     }),
   ],
   server: {

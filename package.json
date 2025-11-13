@@ -6,15 +6,16 @@
 		"packages/*"
 	],
 	"scripts": {
-		"dev": "npm run generate:types && npm run build:micro && concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:micro\"",
+		"dev": "npm run generate:types && npm run build:frontend && npm run build:micro && concurrently \"npm run dev:backend\" \"npm run preview:frontend\" \"npm run dev:micro\"",
 		"dev:backend": "npm run dev --workspace=backend",
 		"dev:frontend": "npm run dev --workspace=frontend",
 		"dev:micro": "npm run preview --workspace=micro-frontend",
+		"preview:frontend": "npm run preview --workspace=frontend",
 		"build": "npm run build --workspaces",
 		"build:backend": "npm run build --workspace=backend",
 		"build:frontend": "npm run build --workspace=frontend",
 		"build:micro": "npm run build --workspace=micro-frontend",
-		"generate:types": "npm run generate:types --workspace=backend"
+		"generate:types": "npm run generate:types --workspace=backend && npm run generate:types --workspace=micro-frontend"
 	},
 	"devDependencies": {
 		"concurrently": "^8.2.2",

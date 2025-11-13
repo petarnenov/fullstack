@@ -11,7 +11,7 @@ export default defineConfig({
       exposes: {
         './MicroPage': './src/pages/MicroPage',
       },
-      shared: ['react', 'react-dom'],
+      shared: ['react', 'react-dom', '@tanstack/react-query'],
     }),
   ],
   build: {
