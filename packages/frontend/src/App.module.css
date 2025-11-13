@@ -203,6 +203,27 @@
   transform: none;
 }
 
+.headerWithActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.headerWithActions h2 {
+  margin-bottom: 0;
+}
+
+.btnSecondary {
+  background: #6c757d;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+}
+
+.btnSecondary:hover {
+  background: #5a6268;
+}
+
 .badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;

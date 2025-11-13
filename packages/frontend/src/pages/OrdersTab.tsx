@@ -71,9 +71,22 @@ function OrdersTab() {
     return texts[status || "pending"] || status;
   };
 
+  const handleInvalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["orders"] });
+  };
+
   return (
     <div className={styles.tabContent}>
-      <h2>🛒 Orders</h2>
+      <div className={styles.headerWithActions}>
+        <h2>🛒 Orders</h2>
+        <button
+          onClick={handleInvalidate}
+          className={`${styles.btn} ${styles.btnSecondary}`}
+          title="Refresh orders data"
+        >
+          🔄 Invalidate Cache
+        </button>
+      </div>
 
       <div className={styles.dataGrid}>
         {orders?.map((order: Order) => (
