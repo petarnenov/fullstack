@@ -49,13 +49,16 @@ fullstack/
 │   │   │       ├── OrdersTab.tsx
 │   │   │       └── TypeExamplesPage.tsx
 │   │   └── package.json
-│   └── micro-frontend/         # Micro frontend (remote)
-│       ├── src/
-│       │   ├── main.tsx        # Entry point
-│       │   ├── App.tsx         # Standalone mode
-│       │   └── pages/
-│       │       └── MicroPage.tsx  # Exported component
-│       └── package.json
+   └── micro-frontend/         # Micro frontend (remote)
+       ├── src/
+       │   ├── main.tsx        # Entry point
+       │   ├── App.tsx         # Standalone mode
+       │   ├── api/            # Swagger-generated API
+       │   │   ├── index.ts    # API client exports
+       │   │   └── generated/  # Auto-generated from Swagger
+       │   └── pages/
+       │       └── MicroPage.tsx  # Exported component
+       └── package.json
 ```
 
 ## 🎯 Landing Page Features
@@ -88,7 +91,10 @@ Landing page-ът съдържа **5 таба**:
 5. **🎨 Micro Frontend** - Module Federation демонстрация
    - Зареждане на компонент от отделен micro frontend
    - Runtime code sharing с Module Federation
-   - Shared React 19 singleton
+   - Споделен React 19 и TanStack Query като singletons
+   - **Order Creation Form** - Създаване на поръчки от micro-frontend
+   - **Auto-sync Cache** - Автоматично обновяване на Orders таба при създаване
+   - Собствен Swagger-генериран API клиент
    - Независимо deployment
 
 ## 🚀 Стартиране
@@ -142,16 +148,20 @@ npm run build:micro
 
 ## 🔄 TypeScript интеграция от Swagger
 
-Backend генерира Swagger документация, която може да се използва за автоматично генериране на TypeScript типове за Frontend:
+Backend генерира Swagger документация, която се използва за автоматично генериране на TypeScript типове за Frontend и Micro-frontend:
 
 ```bash
 npm run generate:types
 ```
 
 Това извършва:
-1. Генерира `swagger.json` от TypeScript дефиницията
-2. Използва `swagger-typescript-api` за създаване на типизиран API клиент
-3. Споделя типовете между backend и frontend
+1. Генерира `swagger.json` от TypeScript дефиницията в backend
+2. Копира swagger.json в micro-frontend директорията
+3. Използва `swagger-typescript-api` за създаване на типизиран API клиент за frontend
+4. Използва `swagger-typescript-api` за създаване на типизиран API клиент за micro-frontend
+5. Споделя типовете между backend, frontend и micro-frontend
+
+**Важно:** И двата frontend-а имат собствени API клиенти, но споделят `@tanstack/react-query` като singleton за синхронизация на cache-а.
 
 ## 🎨 UI/UX Features
 
@@ -179,9 +189,12 @@ npm run generate:types
 ### Micro Frontend (Remote App)
 - **React 19.2.0** - Споделен като singleton с host app
 - **Vite 6** - Build tool
+- **TanStack Query 5.90.8** - Споделен като singleton за cache sync
+- **Axios 1.13.2** - HTTP клиент
 - **TypeScript 5.6** - Static type checking
 - **Module Federation** - @originjs/vite-plugin-federation
-- **Lazy Loading** - Компонентът се зарежда динамично
+- **Swagger-generated API** - Автоматично генериран типизиран клиент
+- **Preview Mode** - Изисква build за правилна работа на federation
 
 ### Backend
 - **Express 4** - Web framework
@@ -258,7 +271,7 @@ federation({
   exposes: {
     './MicroPage': './src/pages/MicroPage',
   },
-  shared: ['react', 'react-dom'],
+  shared: ['react', 'react-dom', '@tanstack/react-query'],
 })
 ```
 
@@ -270,16 +283,31 @@ federation({
   remotes: {
     microFrontend: 'http://localhost:5174/assets/remoteEntry.js',
   },
-  shared: ['react', 'react-dom'],
+  shared: ['react', 'react-dom', '@tanstack/react-query'],
 })
 ```
 
 ### Особености
 
-- **Micro frontend работи в preview mode** - Използва build версията
+- **Micro frontend работи в preview mode** - Използва build версията за правилна работа на Module Federation
 - **React Compiler е disabled** в micro-frontend за съвместимост
-- **React 19 singleton** - И двете приложения споделят един React instance
+- **Shared Singletons**:
+  - React 19 - Един instance между host и remote
+  - React DOM - Споделен за правилна работа
+  - TanStack Query - **Споделен QueryClient за cache синхронизация**
+- **Independent APIs** - Всеки frontend има собствен Swagger-генериран API клиент
+- **Auto-sync Updates** - Създаването на order в micro-frontend автоматично обновява Orders таба в host app чрез `queryClient.invalidateQueries()`
 - **TypeScript declarations** - Типове за remote модулите
+
+### Cache Synchronization
+
+Когато създадете order от micro-frontend:
+1. Micro-frontend извиква `ordersApi.create()` със собствения си API клиент
+2. При успех извиква `queryClient.invalidateQueries({ queryKey: ["orders"] })`
+3. Споделеният QueryClient singleton уведомява host app
+4. Orders таба автоматично рефетчва данните и показва новия order
+
+Това работи защото `@tanstack/react-query` е споделен като singleton.
 
 ### Standalone Mode
 

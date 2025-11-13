@@ -46,8 +46,10 @@ For more information see [QUICKSTART.md](./QUICKSTART.md) and [TYPE_GENERATION.m
 
 ### Micro Frontend
 - **Micro Frontend Architecture** - Module Federation with runtime code sharing
+- **Independent API** - Each frontend has own Swagger-generated API client
+- **Shared QueryClient** - TanStack Query shared as singleton for cache synchronization
 - **Independent Deployment** - Micro frontend can be deployed separately
-- **Shared Dependencies** - React 19 shared as singleton between host and remote
+- **Auto-sync Updates** - Orders created in micro-frontend appear instantly in host app
 
 ## 🎯 Features
 
@@ -77,8 +79,11 @@ For more information see [QUICKSTART.md](./QUICKSTART.md) and [TYPE_GENERATION.m
 - React 19.2.0
 - Vite 6
 - TypeScript
+- TanStack Query 5.90.8 (shared singleton)
+- Axios 1.13.2
 - Module Federation (@originjs/vite-plugin-federation)
-- Shared React singleton with host app
+- Swagger-generated API client
+- Shared React and QueryClient with host app
 
 ### Backend
 
@@ -173,4 +178,8 @@ npm run test:watch    # Run tests in watch mode
 npm run generate:types
 ```
 
-This automatically generates TypeScript types from Swagger definitions and shares them between frontend and backend.
+This automatically generates TypeScript types from Swagger definitions for:
+- **Frontend** (`packages/frontend/src/api/generated`)
+- **Micro-frontend** (`packages/micro-frontend/src/api/generated`)
+
+Both frontends have independent API clients with shared type definitions from the backend.
