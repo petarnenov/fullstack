@@ -13,11 +13,7 @@ export default defineConfig({
       exposes: {
         "./MicroPage": "./src/pages/MicroPage",
       },
-      shared: {
-        react: { singleton: true, strictVersion: false },
-        "react-dom": { singleton: true, strictVersion: false },
-        "@tanstack/react-query": { singleton: true, strictVersion: false },
-      },
+      shared: ["react", "react-dom", "@tanstack/react-query"],
     }),
   ],
   build: {
