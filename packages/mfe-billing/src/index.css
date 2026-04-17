@@ -1,0 +1,105 @@
+/*
+ * When composed by the shell, the shell's :root tokens win (same names).
+ * These defaults are for standalone dev (`npm run dev:billing:standalone`).
+ * Tokens mirror platform-shell/src/index.css by design.
+ */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f6f7fb;
+  --surface: #ffffff;
+  --surface-alt: #f0f2f7;
+  --border: #e3e6ef;
+  --text: #1d2333;
+  --text-muted: #5b6478;
+  --shadow: 0 1px 2px rgba(17, 20, 32, 0.06);
+
+  --danger-bg: #fff3f3;
+  --danger-border: #f4c2c2;
+  --danger-text: #d23a3a;
+
+  --warning-bg: #fff7ed;
+  --warning-border: #ffd8a8;
+  --warning-text: #c77700;
+
+  --success-bg: #ecfdf3;
+  --success-border: #b7ebc6;
+  --success-text: #2e7d48;
+
+  --team-billing: #d97706;
+  --team-billing-soft: #ffedd5;
+  --team-billing-contrast: #ffffff;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0f1117;
+  --surface: #181b24;
+  --surface-alt: #242836;
+  --border: #2e3240;
+  --text: #e8ebf2;
+  --text-muted: #9199ac;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+
+  --danger-bg: #2c1516;
+  --danger-border: #5b2a2d;
+  --danger-text: #ff8a8a;
+
+  --warning-bg: #2a1e0c;
+  --warning-border: #5a4020;
+  --warning-text: #ffc178;
+
+  --success-bg: #122a1d;
+  --success-border: #2c5a3e;
+  --success-text: #86d7a3;
+
+  --team-billing: #ffb25a;
+  --team-billing-soft: #3a2815;
+  --team-billing-contrast: #0f1117;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --bg: #0f1117;
+    --surface: #181b24;
+    --surface-alt: #242836;
+    --border: #2e3240;
+    --text: #e8ebf2;
+    --text-muted: #9199ac;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+
+    --danger-bg: #2c1516;
+    --danger-border: #5b2a2d;
+    --danger-text: #ff8a8a;
+
+    --warning-bg: #2a1e0c;
+    --warning-border: #5a4020;
+    --warning-text: #ffc178;
+
+    --success-bg: #122a1d;
+    --success-border: #2c5a3e;
+    --success-text: #86d7a3;
+
+    --team-billing: #ffb25a;
+    --team-billing-soft: #3a2815;
+    --team-billing-contrast: #0f1117;
+  }
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}

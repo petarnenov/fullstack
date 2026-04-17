@@ -1,0 +1,609 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Asset Management Platform API",
+    "version": "1.0.0",
+    "description": "Domain-oriented API for the Asset Management Platform POC. Two domains: billing (invoices, transactions) owned by the Billing team, and accounts (onboarding) owned by the Open Account team."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Development"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Billing",
+      "description": "Owned by Billing team"
+    },
+    {
+      "name": "Accounts",
+      "description": "Owned by Open Account team"
+    }
+  ],
+  "paths": {
+    "/api/billing/invoices": {
+      "get": {
+        "summary": "List invoices",
+        "tags": [
+          "Billing"
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Invoice"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/billing/invoices/{id}": {
+      "get": {
+        "summary": "Get invoice",
+        "tags": [
+          "Billing"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Invoice"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/billing/invoices/{id}/pay": {
+      "post": {
+        "summary": "Pay invoice",
+        "tags": [
+          "Billing"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayInvoiceRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated invoice",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Invoice"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/billing/transactions": {
+      "get": {
+        "summary": "List transactions",
+        "tags": [
+          "Billing"
+        ],
+        "responses": {
+          "200": {
+            "description": "Transactions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Transaction"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/billing/summary": {
+      "get": {
+        "summary": "Billing summary (used by OutstandingBalanceWidget)",
+        "tags": [
+          "Billing"
+        ],
+        "responses": {
+          "200": {
+            "description": "Summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts": {
+      "get": {
+        "summary": "List accounts",
+        "tags": [
+          "Accounts"
+        ],
+        "responses": {
+          "200": {
+            "description": "Accounts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Account"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Start new account onboarding",
+        "tags": [
+          "Accounts"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccountRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid"
+          }
+        }
+      }
+    },
+    "/api/accounts/progress": {
+      "get": {
+        "summary": "Onboarding progress (used by OnboardingProgressWidget)",
+        "tags": [
+          "Accounts"
+        ],
+        "responses": {
+          "200": {
+            "description": "Progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingProgress"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/accounts/{id}": {
+      "get": {
+        "summary": "Get account",
+        "tags": [
+          "Accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        }
+      }
+    },
+    "/api/accounts/{id}/advance": {
+      "post": {
+        "summary": "Advance onboarding to next step",
+        "tags": [
+          "Accounts"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdvanceStepRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Account"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          },
+          "409": {
+            "description": "Invalid step order"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Currency": {
+        "type": "string",
+        "enum": [
+          "USD",
+          "EUR",
+          "GBP"
+        ]
+      },
+      "InvoiceStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "paid",
+          "overdue"
+        ]
+      },
+      "TransactionType": {
+        "type": "string",
+        "enum": [
+          "charge",
+          "refund",
+          "fee"
+        ]
+      },
+      "Invoice": {
+        "type": "object",
+        "required": [
+          "id",
+          "accountId",
+          "amount",
+          "currency",
+          "status",
+          "description",
+          "issuedAt",
+          "dueAt",
+          "paidAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "format": "float"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "status": {
+            "$ref": "#/components/schemas/InvoiceStatus"
+          },
+          "description": {
+            "type": "string"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "paidAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "Transaction": {
+        "type": "object",
+        "required": [
+          "id",
+          "invoiceId",
+          "accountId",
+          "amount",
+          "currency",
+          "type",
+          "description",
+          "timestamp"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "invoiceId": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "amount": {
+            "type": "number",
+            "format": "float"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "type": {
+            "$ref": "#/components/schemas/TransactionType"
+          },
+          "description": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "BillingSummary": {
+        "type": "object",
+        "required": [
+          "outstandingBalance",
+          "currency",
+          "overdueCount",
+          "pendingCount",
+          "paidThisMonth"
+        ],
+        "properties": {
+          "outstandingBalance": {
+            "type": "number"
+          },
+          "currency": {
+            "$ref": "#/components/schemas/Currency"
+          },
+          "overdueCount": {
+            "type": "number"
+          },
+          "pendingCount": {
+            "type": "number"
+          },
+          "paidThisMonth": {
+            "type": "number"
+          }
+        }
+      },
+      "PayInvoiceRequest": {
+        "type": "object",
+        "required": [
+          "paymentMethodId"
+        ],
+        "properties": {
+          "paymentMethodId": {
+            "type": "string"
+          }
+        }
+      },
+      "AccountStatus": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "kyc_pending",
+          "verified",
+          "rejected"
+        ]
+      },
+      "ProductType": {
+        "type": "string",
+        "enum": [
+          "trading",
+          "savings",
+          "retirement"
+        ]
+      },
+      "OnboardingStep": {
+        "type": "string",
+        "enum": [
+          "personal_info",
+          "identity_verification",
+          "funding",
+          "review"
+        ]
+      },
+      "Account": {
+        "type": "object",
+        "required": [
+          "id",
+          "holderName",
+          "email",
+          "productType",
+          "status",
+          "completedSteps",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "holderName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "productType": {
+            "$ref": "#/components/schemas/ProductType"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AccountStatus"
+          },
+          "completedSteps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OnboardingStep"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "OnboardingProgress": {
+        "type": "object",
+        "required": [
+          "totalAccounts",
+          "draft",
+          "kycPending",
+          "verified",
+          "rejected",
+          "averageCompletion"
+        ],
+        "properties": {
+          "totalAccounts": {
+            "type": "number"
+          },
+          "draft": {
+            "type": "number"
+          },
+          "kycPending": {
+            "type": "number"
+          },
+          "verified": {
+            "type": "number"
+          },
+          "rejected": {
+            "type": "number"
+          },
+          "averageCompletion": {
+            "type": "number"
+          }
+        }
+      },
+      "CreateAccountRequest": {
+        "type": "object",
+        "required": [
+          "holderName",
+          "email",
+          "productType"
+        ],
+        "properties": {
+          "holderName": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "productType": {
+            "$ref": "#/components/schemas/ProductType"
+          }
+        }
+      },
+      "AdvanceStepRequest": {
+        "type": "object",
+        "required": [
+          "step"
+        ],
+        "properties": {
+          "step": {
+            "$ref": "#/components/schemas/OnboardingStep"
+          }
+        }
+      }
+    }
+  }
+}
