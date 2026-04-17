@@ -1,6 +1,6 @@
 import { lazy } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
+import { useAuthenticatedUser } from "../auth/AuthContext";
 import MfeBoundary from "../components/MfeBoundary";
 import TeamBadge from "../components/TeamBadge";
 import styles from "./DashboardPage.module.css";
@@ -11,9 +11,10 @@ const OutstandingBalanceWidget = lazy(
 const OnboardingProgressWidget = lazy(
   () => import("mfe_open_account/OnboardingProgressWidget"),
 );
+const PortfolioWidget = lazy(() => import("mfe_trading/PortfolioWidget"));
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const user = useAuthenticatedUser();
 
   return (
     <div className={styles.page}>
@@ -60,13 +61,26 @@ export default function DashboardPage() {
 
         <article className={styles.widgetCell}>
           <div className={styles.widgetHeader}>
+            <span className={styles.widgetLabel}>Portfolio</span>
+            <TeamBadge team="trading" />
+          </div>
+          <MfeBoundary label="Portfolio widget" fallbackHeight={160}>
+            <PortfolioWidget />
+          </MfeBoundary>
+          <Link to="/trading" className={styles.widgetLink}>
+            Go to Trading →
+          </Link>
+        </article>
+
+        <article className={styles.widgetCell}>
+          <div className={styles.widgetHeader}>
             <span className={styles.widgetLabel}>Platform health</span>
             <TeamBadge team="shell" />
           </div>
           <div className={styles.shellTiles}>
             <ShellStat label="Shell version" value="1.0.0" />
             <ShellStat label="Tenant" value={user.tenantId} />
-            <ShellStat label="Remotes loaded" value="2" />
+            <ShellStat label="Remotes loaded" value="3" />
             <ShellStat label="Role" value={user.role} />
           </div>
         </article>
@@ -88,6 +102,11 @@ export default function DashboardPage() {
             <TeamBadge team="accounts" /> owns the{" "}
             <code>OnboardingProgressWidget</code>, exposed from{" "}
             <code>mfe-open-account</code>.
+          </li>
+          <li>
+            <TeamBadge team="trading" /> owns the{" "}
+            <code>PortfolioWidget</code>, exposed from{" "}
+            <code>mfe-trading</code>.
           </li>
         </ul>
       </section>

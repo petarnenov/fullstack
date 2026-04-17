@@ -30,3 +30,6 @@
 .accounts {
   color: var(--team-accounts);
 }
+.trading {
+  color: var(--team-trading);
+}

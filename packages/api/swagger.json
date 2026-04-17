@@ -3,7 +3,7 @@
   "info": {
     "title": "Asset Management Platform API",
     "version": "1.0.0",
-    "description": "Domain-oriented API for the Asset Management Platform POC. Two domains: billing (invoices, transactions) owned by the Billing team, and accounts (onboarding) owned by the Open Account team."
+    "description": "Domain-oriented API for the Asset Management Platform POC. Three domains: auth (Platform Core), billing (Billing team), accounts (Open Account team)."
   },
   "servers": [
     {
@@ -13,15 +13,122 @@
   ],
   "tags": [
     {
+      "name": "Auth",
+      "description": "Owned by Platform Core team"
+    },
+    {
       "name": "Billing",
-      "description": "Owned by Billing team"
+      "description": "Owned by Billing team (requires auth)"
     },
     {
       "name": "Accounts",
-      "description": "Owned by Open Account team"
+      "description": "Owned by Open Account team (requires auth)"
+    },
+    {
+      "name": "Trading",
+      "description": "Owned by Trading team (requires auth)"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
     }
   ],
   "paths": {
+    "/api/auth/login": {
+      "post": {
+        "summary": "Exchange credentials for a session token",
+        "tags": [
+          "Auth"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "summary": "Revoke the current session",
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "204": {
+            "description": "Logged out"
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "summary": "Get the current user (token validation)",
+        "tags": [
+          "Auth"
+        ],
+        "responses": {
+          "200": {
+            "description": "User",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatedUser"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          }
+        }
+      }
+    },
+    "/api/auth/demo-credentials": {
+      "get": {
+        "summary": "Demo-only: list hardcoded credentials for the login page",
+        "tags": [
+          "Auth"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "List of demo credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DemoCredential"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/billing/invoices": {
       "get": {
         "summary": "List invoices",
@@ -316,10 +423,236 @@
           }
         }
       }
+    },
+    "/api/trading/symbols": {
+      "get": {
+        "summary": "List tradable instruments with last price",
+        "tags": [
+          "Trading"
+        ],
+        "responses": {
+          "200": {
+            "description": "Symbols",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TradingSymbol"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/trading/positions": {
+      "get": {
+        "summary": "Current portfolio positions",
+        "tags": [
+          "Trading"
+        ],
+        "responses": {
+          "200": {
+            "description": "Positions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Position"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/trading/orders": {
+      "get": {
+        "summary": "Order history (most recent first)",
+        "tags": [
+          "Trading"
+        ],
+        "responses": {
+          "200": {
+            "description": "Orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Order"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Place a market order (instant fill in POC)",
+        "tags": [
+          "Trading"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaceOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order filled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid payload"
+          },
+          "404": {
+            "description": "Unknown ticker"
+          },
+          "409": {
+            "description": "Order rejected (e.g. insufficient position on sell)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Order"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/trading/portfolio": {
+      "get": {
+        "summary": "Portfolio summary (used by PortfolioWidget)",
+        "tags": [
+          "Trading"
+        ],
+        "responses": {
+          "200": {
+            "description": "Portfolio",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PortfolioSummary"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
     "schemas": {
+      "UserRole": {
+        "type": "string",
+        "enum": [
+          "admin",
+          "operator",
+          "analyst"
+        ]
+      },
+      "AuthenticatedUser": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "fullName",
+          "role",
+          "tenantId"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          "tenantId": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "required": [
+          "token",
+          "user"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/AuthenticatedUser"
+          }
+        }
+      },
+      "DemoCredential": {
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "role"
+        ],
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      },
       "Currency": {
         "type": "string",
         "enum": [
@@ -601,6 +934,180 @@
         "properties": {
           "step": {
             "$ref": "#/components/schemas/OnboardingStep"
+          }
+        }
+      },
+      "OrderSide": {
+        "type": "string",
+        "enum": [
+          "buy",
+          "sell"
+        ]
+      },
+      "OrderStatus": {
+        "type": "string",
+        "enum": [
+          "filled",
+          "rejected"
+        ]
+      },
+      "TradingSymbol": {
+        "type": "object",
+        "required": [
+          "ticker",
+          "name",
+          "sector",
+          "lastPrice",
+          "change24h"
+        ],
+        "properties": {
+          "ticker": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sector": {
+            "type": "string"
+          },
+          "lastPrice": {
+            "type": "number",
+            "format": "float"
+          },
+          "change24h": {
+            "type": "number",
+            "format": "float"
+          }
+        }
+      },
+      "Position": {
+        "type": "object",
+        "required": [
+          "ticker",
+          "name",
+          "quantity",
+          "averageCost",
+          "marketValue",
+          "unrealizedPnL",
+          "unrealizedPnLPercent"
+        ],
+        "properties": {
+          "ticker": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "averageCost": {
+            "type": "number"
+          },
+          "marketValue": {
+            "type": "number"
+          },
+          "unrealizedPnL": {
+            "type": "number"
+          },
+          "unrealizedPnLPercent": {
+            "type": "number"
+          }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "required": [
+          "id",
+          "ticker",
+          "side",
+          "quantity",
+          "fillPrice",
+          "total",
+          "status",
+          "rejectionReason",
+          "placedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ticker": {
+            "type": "string"
+          },
+          "side": {
+            "$ref": "#/components/schemas/OrderSide"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "fillPrice": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OrderStatus"
+          },
+          "rejectionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "placedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PlaceOrderRequest": {
+        "type": "object",
+        "required": [
+          "ticker",
+          "side",
+          "quantity"
+        ],
+        "properties": {
+          "ticker": {
+            "type": "string"
+          },
+          "side": {
+            "$ref": "#/components/schemas/OrderSide"
+          },
+          "quantity": {
+            "type": "number"
+          }
+        }
+      },
+      "PortfolioSummary": {
+        "type": "object",
+        "required": [
+          "totalMarketValue",
+          "totalCostBasis",
+          "totalUnrealizedPnL",
+          "totalUnrealizedPnLPercent",
+          "positionsCount",
+          "topHoldingTicker"
+        ],
+        "properties": {
+          "totalMarketValue": {
+            "type": "number"
+          },
+          "totalCostBasis": {
+            "type": "number"
+          },
+          "totalUnrealizedPnL": {
+            "type": "number"
+          },
+          "totalUnrealizedPnLPercent": {
+            "type": "number"
+          },
+          "positionsCount": {
+            "type": "number"
+          },
+          "topHoldingTicker": {
+            "type": "string",
+            "nullable": true
           }
         }
       }
