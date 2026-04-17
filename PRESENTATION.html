@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Micro Frontends — A 30-Minute Walkthrough</title>
+
+  <!-- reveal.js core + theme + highlight.js theme, loaded from CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" id="reveal-theme" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+
+  <style>
+    :root {
+      --accent: #7a8eff;
+      --team-shell: #8f9cff;
+      --team-billing: #ffb25a;
+      --team-accounts: #5ad5c6;
+      --team-trading: #c084fc;
+      --muted: #9199ac;
+    }
+    .reveal {
+      font-size: 28px;
+    }
+    .reveal h1, .reveal h2, .reveal h3 {
+      text-transform: none;
+      letter-spacing: -0.01em;
+    }
+    .reveal h1 { font-size: 1.9em; }
+    .reveal h2 { font-size: 1.45em; }
+    .reveal h3 { font-size: 1.15em; color: var(--accent); }
+    .reveal pre {
+      font-size: 0.55em;
+      line-height: 1.45;
+      box-shadow: none;
+      width: 100%;
+    }
+    .reveal code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .reveal pre code {
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      max-height: 520px;
+    }
+    .reveal :not(pre) > code {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
+    .reveal table {
+      font-size: 0.78em;
+      margin: 0 auto;
+      border-collapse: collapse;
+    }
+    .reveal table th,
+    .reveal table td {
+      padding: 0.45em 0.7em;
+      border-bottom: 1px solid #2e3240;
+      text-align: left;
+    }
+    .reveal table thead th {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .reveal blockquote {
+      width: 85%;
+      margin: 0.8em auto;
+      padding: 0.6em 1.1em;
+      border-left: 3px solid var(--accent);
+      background: rgba(122, 142, 255, 0.08);
+      font-size: 0.9em;
+      font-style: italic;
+      color: #cbd0df;
+    }
+    .reveal .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.55em;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border: 1px solid currentColor;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .reveal .badge.shell { color: var(--team-shell); }
+    .reveal .badge.billing { color: var(--team-billing); }
+    .reveal .badge.accounts { color: var(--team-accounts); }
+    .reveal .badge.trading { color: var(--team-trading); }
+    .reveal .muted { color: var(--muted); }
+    .reveal .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5em;
+      text-align: left;
+    }
+    .reveal .three-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1.5em;
+      text-align: left;
+    }
+    .reveal .section-header {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      font-size: 0.55em;
+      font-weight: 600;
+      margin-bottom: 0.8em;
+    }
+    .reveal ul,
+    .reveal ol {
+      display: block;
+      margin-left: 1em;
+    }
+    .reveal ul li,
+    .reveal ol li {
+      margin: 0.4em 0;
+    }
+    .reveal .subtitle {
+      color: var(--muted);
+      font-size: 0.72em;
+      font-weight: 400;
+      margin-top: 0.4em;
+    }
+    .reveal .ascii {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.6em;
+      line-height: 1.3;
+      text-align: left;
+      white-space: pre;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 1em 1.2em;
+      border-radius: 8px;
+      display: inline-block;
+      margin: 0 auto;
+    }
+    .reveal .timing {
+      position: absolute;
+      top: 8px;
+      right: 16px;
+      font-size: 0.4em;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+<div class="reveal">
+  <div class="slides">
+
+    <!-- 0 · Title -->
+    <section>
+      <div class="section-header">Asset Management Platform POC</div>
+      <h1>Micro Frontends in practice</h1>
+      <p class="subtitle">What we chose, what we skipped, and what it cost.</p>
+      <p class="muted" style="font-size: 0.65em; margin-top: 2em;">
+        4 teams · 4 packages · Module Federation · ~30 min + Q&amp;A
+      </p>
+      <aside class="notes">
+        Open tabs before starting: http://localhost:5173, the repo in the editor, a terminal.
+        Set expectations: this isn't theory, every slide maps to a real file in the repo.
+      </aside>
+    </section>
+
+    <!-- 1 · The problem -->
+    <section>
+      <span class="timing">2 min</span>
+      <div class="section-header">The organisational problem</div>
+      <h2>A single SPA stops scaling at team-3</h2>
+      <ul>
+        <li>One team, one codebase, one CI, one on-call — fine.</li>
+        <li>Three teams shipping the same SPA — merges hurt, releases couple, Billing's bug blocks Open Account's release.</li>
+        <li>Micro frontends trade build-time coordination for runtime composition.</li>
+      </ul>
+      <blockquote>
+        The motivation is organisational, not technical. Under 3 teams → well-structured monolith wins.
+      </blockquote>
+      <aside class="notes">
+        Resist the urge to pitch this as a perf win or a migration path. It's a team-autonomy pattern.
+      </aside>
+    </section>
+
+    <!-- 2 · What MFE is and isn't -->
+    <section>
+      <span class="timing">2 min</span>
+      <div class="section-header">Definition check</div>
+      <h2>What a micro frontend is (and isn't)</h2>
+      <table>
+        <thead>
+          <tr><th>It IS</th><th>It ISN'T</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>A runtime composition model</td><td>A way to avoid npm dependencies</td></tr>
+          <tr><td>An ownership boundary (team → package)</td><td>A performance optimisation</td></tr>
+          <tr><td>Independent build + deploy per slice</td><td>A rewrite excuse</td></tr>
+          <tr><td>A team-autonomy enabler</td><td>Free — you pay in coordination</td></tr>
+        </tbody>
+      </table>
+      <blockquote>
+        Iframes, Web Components, Module Federation, import-maps — those are mechanisms. The pattern is team autonomy with a shared surface.
+      </blockquote>
+    </section>
+
+    <!-- 3 · Team & package map -->
+    <section>
+      <span class="timing">2 min</span>
+      <div class="section-header">The lay of the land</div>
+      <h2>Team &amp; package map</h2>
+      <div class="ascii">        Platform Core (shell)
+        /        |        \       \
+       /         |         \       \
+   Billing  Open Account  Trading   + shared API</div>
+      <table style="margin-top: 1em;">
+        <thead>
+          <tr><th>Team</th><th>Package</th><th>Port</th><th>Owns</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="badge shell">Platform Core</span></td><td><code>@amp/platform-shell</code></td><td>5173</td><td>Shell, nav, auth, theme, Dashboard</td></tr>
+          <tr><td><span class="badge billing">Billing</span></td><td><code>@amp/mfe-billing</code></td><td>5175</td><td>Invoices, transactions, balance</td></tr>
+          <tr><td><span class="badge accounts">Open Account</span></td><td><code>@amp/mfe-open-account</code></td><td>5174</td><td>Onboarding wizard, progress</td></tr>
+          <tr><td><span class="badge trading">Trading</span></td><td><code>@amp/mfe-trading</code></td><td>5176</td><td>Orders, cash, positions, portfolio</td></tr>
+          <tr><td class="muted">(service)</td><td><code>@amp/api</code></td><td>3000</td><td>Domain-split Express API</td></tr>
+        </tbody>
+      </table>
+      <p class="subtitle">Naming encodes the team boundary: <code>mfe-&lt;domain&gt;</code> + shell + api.</p>
+    </section>
+
+    <!-- 4 · Module Federation -->
+    <section>
+      <span class="timing">2 min</span>
+      <div class="section-header">The mechanism</div>
+      <h2>Module Federation in one picture</h2>
+      <div class="two-col">
+        <div>
+          <p class="muted" style="font-size: 0.75em;">Each remote declares what it exposes:</p>
+<pre><code class="language-ts" data-trim data-noescape>// mfe-trading/vite.config.ts
+federation({
+  name: "mfe_trading",
+  filename: "remoteEntry.js",
+  exposes: {
+    "./TradingPage":    "./src/pages/TradingPage",
+    "./PortfolioWidget":"./src/widgets/PortfolioWidget",
+  },
+  shared: ["react", "react-dom",
+           "@tanstack/react-query"],
+})</code></pre>
+        </div>
+        <div>
+          <p class="muted" style="font-size: 0.75em;">Shell consumes them at runtime:</p>
+<pre><code class="language-ts" data-trim data-noescape>// platform-shell/vite.config.ts
+federation({
+  name: "platform_shell",
+  remotes: {
+    mfe_billing:      "http://…:5175/assets/remoteEntry.js",
+    mfe_open_account: "http://…:5174/assets/remoteEntry.js",
+    mfe_trading:      "http://…:5176/assets/remoteEntry.js",
+  },
+  shared: ["react", "react-dom",
+           "@tanstack/react-query"],
+})</code></pre>
+        </div>
+      </div>
+<pre style="margin-top: 0.8em;"><code class="language-tsx" data-trim>// platform-shell/src/pages/DashboardPage.tsx
+const PortfolioWidget = lazy(() => import("mfe_trading/PortfolioWidget"));</code></pre>
+      <p class="muted" style="font-size: 0.7em;">That's the entire integration — three remotes, no shared source code.</p>
+    </section>
+
+    <!-- 5 · What crosses the boundary -->
+    <section>
+      <span class="timing">2 min</span>
+      <div class="section-header">The contract</div>
+      <h2>What crosses the team boundary</h2>
+      <ol>
+        <li><strong>The exposed module name</strong> + its default-export component signature.</li>
+        <li><strong>Shared singletons</strong> declared in federation's <code>shared:</code> list.</li>
+        <li><strong>Runtime contracts we build on top</strong> — auth SDK, CSS tokens, <code>accountId</code>. Explicit, minimal.</li>
+      </ol>
+      <p class="muted" style="font-size: 0.85em; margin-top: 1em;">
+        No shared npm package. No shared type imports at build time. Every MFE regenerates its own API client from the same Swagger.
+      </p>
+      <blockquote>
+        When Billing rebuilds, nobody else rebuilds. When Billing deploys, nobody else deploys. That's the whole promise.
+      </blockquote>
+    </section>
+
+    <!-- 6 · Shared singletons -->
+    <section>
+      <span class="timing">1.5 min</span>
+      <div class="section-header">Non-negotiables</div>
+      <h2>Shared singletons</h2>
+<pre><code class="language-ts" data-trim>shared: ["react", "react-dom", "@tanstack/react-query"]</code></pre>
+      <ul>
+        <li><strong>React / React DOM</strong> — two instances break hooks. Non-negotiable.</li>
+        <li><strong>@tanstack/react-query</strong> — one <code>QueryClient</code> across shell + all MFEs.
+          <span class="muted">This is our cross-MFE messaging layer.</span></li>
+      </ul>
+      <p>Pay an invoice in <code>mfe-billing</code> → invalidates <code>billingKeys.all</code> → <code>OutstandingBalanceWidget</code> on the Dashboard refetches. No event bus, no prop drilling.</p>
+      <blockquote>Shared cache is the cheapest event bus you will ever own.</blockquote>
+    </section>
+
+    <!-- 7 · Live moment -->
+    <section>
+      <span class="timing">1.5 min</span>
+      <div class="section-header">Payoff</div>
+      <h2>Dashboard — runtime composition on screen</h2>
+      <ul>
+        <li>4 tiles, 4 team badges, 3 lazy-loaded remotes.</li>
+        <li>Source: <code>DashboardPage.tsx</code>, three <code>lazy(() =&gt; import(…))</code> lines.</li>
+        <li>Each widget reads the same token, writes into the same cache.</li>
+      </ul>
+<pre><code class="language-tsx" data-trim>const OutstandingBalanceWidget = lazy(() => import("mfe_billing/OutstandingBalanceWidget"));
+const OnboardingProgressWidget = lazy(() => import("mfe_open_account/OnboardingProgressWidget"));
+const PortfolioWidget          = lazy(() => import("mfe_trading/PortfolioWidget"));</code></pre>
+      <p class="muted" style="font-size: 0.8em;">Live: pay an invoice → outstanding balance drops. No wiring.</p>
+      <aside class="notes">
+        Switch to the browser for ~30 seconds. Show the dashboard, click pay, show the widget updating.
+      </aside>
+    </section>
+
+    <!-- 8 · Auth -->
+    <section>
+      <span class="timing">2.5 min</span>
+      <div class="section-header">Where teams really couple</div>
+      <h2>Auth: shell-owned, runtime SDK contract</h2>
+      <p class="muted" style="font-size: 0.78em;">Three options; we picked #3.</p>
+      <ol>
+        <li>Each MFE does its own login → UX nightmare.</li>
+        <li>Shared auth package → reintroduces build coupling.</li>
+        <li><strong>Shell owns auth, publishes a runtime SDK to remotes.</strong></li>
+      </ol>
+      <div class="two-col">
+        <div>
+<pre><code class="language-ts" data-trim>// platform-shell/src/auth/platformSdk.ts
+export interface PlatformSdk {
+  getToken(): string | null;
+}
+window.__AMP_PLATFORM__ = {
+  getToken: () => currentToken,
+};</code></pre>
+        </div>
+        <div>
+<pre><code class="language-ts" data-trim>// mfe-trading/src/api/index.ts
+http.interceptors.request.use((config) => {
+  const sdk = window.__AMP_PLATFORM__;
+  const token = sdk?.getToken?.() ?? null;
+  if (token) config.headers.set(
+    "Authorization", `Bearer ${token}`);
+  return config;
+});</code></pre>
+        </div>
+      </div>
+      <p style="font-size: 0.78em; margin-top: 0.6em;">
+        On 401 the MFE fires <code>amp:auth-expired</code> on <code>window</code>; shell listens → forces logout.<br/>
+        <strong>Cross-team contract = one interface shape + one event name.</strong> Duplicated inline in each MFE.
+      </p>
+      <aside class="notes">
+        Production upgrade: federation-exposed SDK or import-map module with typed stubs. Window bag teaches the right mental model.
+      </aside>
+    </section>
+
+    <!-- 9 · Theme -->
+    <section>
+      <span class="timing">1.5 min</span>
+      <div class="section-header">Design system without a design-system package</div>
+      <h2>Theme: CSS tokens as implicit contract</h2>
+<pre><code class="language-css" data-trim>/* Defined by the shell on &lt;html data-theme="dark"&gt; */
+[data-theme="dark"] {
+  --bg: #0f1117;
+  --text: #e8ebf2;
+  --border: #2e3240;
+  /* … */
+}</code></pre>
+      <ul>
+        <li>Each MFE's CSS modules reference <code>var(--bg)</code>, <code>var(--text)</code> — they don't know who set them.</li>
+        <li>Shell writes <code>data-theme</code> on <code>&lt;html&gt;</code>; remotes inherit for free.</li>
+        <li>Each MFE defines fallback tokens in its own <code>index.css</code> so standalone still works.</li>
+      </ul>
+      <blockquote>Shell-owned CSS variables = design-system contract without a design-system package. Same decoupling story.</blockquote>
+    </section>
+
+    <!-- 10 · accountId -->
+    <section>
+      <span class="timing">2 min</span>
+      <div class="section-header">Cross-domain data</div>
+      <h2>The <code>accountId</code> join key</h2>
+      <div class="ascii">api/src/domains/
+├── auth/       (Platform Core)
+├── billing/    (Billing)      — invoices tagged by accountId
+├── accounts/   (Open Account) — owns identity, KYC, product type
+└── trading/    (Trading)      — owns positions + cash, keyed by accountId</div>
+      <ul style="margin-top: 0.8em;">
+        <li>Buy AAPL on <code>acc_verified_1</code> → Trading debits its own <code>Map&lt;accountId, number&gt;</code>.</li>
+        <li>Trading doesn't ask Accounts if it exists — <strong>lazy-init to $1,000,000</strong>.</li>
+        <li>Billing's invoices for the same account are untouched.</li>
+      </ul>
+      <blockquote>Each team owns its slice of what "an account" is. The shared convention is one string.</blockquote>
+    </section>
+
+    <!-- 11 · Types -->
+    <section>
+      <span class="timing">1.5 min</span>
+      <div class="section-header">Type contracts</div>
+      <h2>One Swagger, four generated clients</h2>
+      <div class="ascii">api/src/swagger.ts            (source of truth)
+        │
+        ▼   tsx generateSwagger.ts
+api/swagger.json
+        │
+        ├──► platform-shell/src/api/generated/   (auth only)
+        ├──► mfe-billing/src/api/generated/
+        ├──► mfe-open-account/src/api/generated/
+        └──► mfe-trading/src/api/generated/</div>
+      <ul style="margin-top: 1em;">
+        <li>Generation happens <strong>per package</strong> — no shared types package.</li>
+        <li>Trading breaks its endpoint → only Trading fails to typecheck.</li>
+        <li>Each MFE wraps the generated client in <code>api/index.ts</code> + a query-key factory.</li>
+      </ul>
+      <blockquote>Contracts travel via regeneration, not via imports. That's the discipline.</blockquote>
+    </section>
+
+    <!-- 12 · CSS isolation -->
+    <section>
+      <span class="timing">1 min</span>
+      <div class="section-header">Sharp edge</div>
+      <h2>CSS isolation in remotes</h2>
+      <p>Vite's federation plugin does <strong>not</strong> load CSS files from remotes. Without intervention, widgets mount unstyled in production.</p>
+<pre><code class="language-ts" data-trim>// each MFE's vite.config.ts
+plugins: [
+  cssInjectedByJsPlugin(),  // inlines CSS into the JS bundle
+  federation({ … }),
+]</code></pre>
+      <ul>
+        <li>Plus <code>isolation: isolate</code> on each MFE's root container so styles stay scoped.</li>
+        <li>Plus CSS Modules so class names are hashed.</li>
+      </ul>
+      <blockquote>Miss this and your federated pages render unstyled in production. Test the composed mode early.</blockquote>
+    </section>
+
+    <!-- 13 · Dev modes -->
+    <section>
+      <span class="timing">1.5 min</span>
+      <div class="section-header">How the team actually works</div>
+      <h2>Three dev modes per MFE</h2>
+      <ol>
+        <li><strong>Standalone with HMR</strong> — <code>npm run dev:trading:standalone</code>. Vite dev, own <code>QueryClient</code>, own Router. Team-local iteration, zero external deps.</li>
+        <li><strong>Built preview</strong> — <code>npm run dev:trading</code>. <code>vite preview</code> serving <code>dist/</code>. Needed because the shell consumes <code>remoteEntry.js</code>, which only exists after <code>vite build</code>.</li>
+        <li><strong>Consumed by shell</strong> — shell's <code>lazy(() =&gt; import("mfe_trading/…"))</code> pulls the remote; MFE uses shell's providers.</li>
+      </ol>
+      <blockquote>Standalone is how you keep the team unblocked. You never need the other three processes to fix your bug.</blockquote>
+    </section>
+
+    <!-- 14 · Deploy independence -->
+    <section>
+      <span class="timing">1.5 min</span>
+      <div class="section-header">The organisational win</div>
+      <h2>Deploy independence (blast radius)</h2>
+      <ul>
+        <li>Kill the <code>mfe-billing</code> process → widget shows an error state via <code>&lt;MfeBoundary&gt;</code>. Everything else works. Restart → widget comes back.</li>
+        <li><strong>Three different CI pipelines, three different release cadences.</strong></li>
+        <li>Billing's bad deploy doesn't break Trading.</li>
+        <li>Each <code>remoteEntry.js</code> can live on its own CDN with its own versioning.</li>
+      </ul>
+      <blockquote>This is the biggest single organisational win. Smaller blast radius → more deploys → faster teams.</blockquote>
+      <aside class="notes">
+        Live moment: stop the mfe-billing process in the terminal, refresh the dashboard, point at the error boundary.
+      </aside>
+    </section>
+
+    <!-- 15 · Shell owns -->
+    <section>
+      <span class="timing">1 min</span>
+      <div class="section-header">Clean seam</div>
+      <h2>Shell owns platform concerns</h2>
+      <div class="two-col">
+        <div>
+          <h3>Shell does</h3>
+          <ul style="font-size: 0.85em;">
+            <li>Routing &amp; navigation</li>
+            <li>Auth (login, session, <code>ProtectedRoute</code>)</li>
+            <li>Theme (<code>data-theme</code>, tokens, toggle)</li>
+            <li>Layout (sidebar, user card, logout)</li>
+            <li>Error boundaries for remotes</li>
+            <li>Platform SDK on <code>window</code></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Shell does NOT</h3>
+          <ul style="font-size: 0.85em;">
+            <li>Fetch Billing / Accounts / Trading data</li>
+            <li>Know any MFE's internal components</li>
+            <li>Know what a position or invoice is</li>
+            <li>Own team-specific business logic</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 16 · Trade-offs -->
+    <section>
+      <span class="timing">2 min</span>
+      <div class="section-header">The honest slide</div>
+      <h2>Trade-offs</h2>
+      <div class="two-col">
+        <div>
+          <h3>You gain</h3>
+          <ul style="font-size: 0.85em;">
+            <li>Team autonomy (dev, build, deploy, on-call)</li>
+            <li>Small blast radius on failures</li>
+            <li>Independent tech choices within shared-singletons</li>
+            <li>Parallel velocity: 3 teams ship simultaneously</li>
+          </ul>
+        </div>
+        <div>
+          <h3>You pay</h3>
+          <ul style="font-size: 0.85em;">
+            <li>One React across remotes — upgrades coordinate</li>
+            <li>CSS isolation is manual</li>
+            <li>Runtime composition → slower first paint</li>
+            <li>Contract discipline needed; humans, not tools, enforce it</li>
+            <li>Shell is a new thing to own</li>
+            <li>Debugging crosses 3 repos</li>
+          </ul>
+        </div>
+      </div>
+      <blockquote>Not free. If your answer to "how many teams ship here" is 1-2, a well-modularised monolith beats this.</blockquote>
+    </section>
+
+    <!-- 17 · Production upgrades -->
+    <section>
+      <span class="timing">1.5 min</span>
+      <div class="section-header">What we skipped</div>
+      <h2>Production upgrades</h2>
+      <table>
+        <thead>
+          <tr><th>POC</th><th>Production</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Window bag for auth SDK</td><td>Federation-exposed SDK or import-map module</td></tr>
+          <tr><td>Opaque tokens in <code>localStorage</code></td><td>JWT in httpOnly cookies + refresh + OIDC IdP</td></tr>
+          <tr><td>Hardcoded remote URLs</td><td>Build-time injection or runtime manifest + versioned URLs</td></tr>
+          <tr><td>In-memory repositories</td><td>Real DBs per domain (or shared DB, schema-separated)</td></tr>
+          <tr><td>No shared design system</td><td><code>@company/tokens</code> package with CSS variables</td></tr>
+          <tr><td>No event bus</td><td>Shared cache covers ~80%; typed events for the rest</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 18 · When NOT -->
+    <section>
+      <span class="timing">1 min</span>
+      <div class="section-header">Anti-recommendation</div>
+      <h2>When NOT to do this</h2>
+      <ul>
+        <li>Fewer than ~3 shipping teams.</li>
+        <li>One cohesive product surface that changes as a whole.</li>
+        <li>Ops team can't run 3 independent CI/CD pipelines.</li>
+        <li>Can't commit to version-coordination on React / core libs.</li>
+        <li>Performance budget can't absorb runtime-composition cost.</li>
+      </ul>
+      <blockquote>
+        A well-structured monolith with clear feature folders is often the right answer. Don't micro-frontend your way into a distributed monolith.
+      </blockquote>
+    </section>
+
+    <!-- 19 · Recap + Q&A -->
+    <section>
+      <span class="timing">1 min</span>
+      <div class="section-header">Recap</div>
+      <h2>What we covered</h2>
+      <ol style="font-size: 0.85em;">
+        <li>Team → package boundary (<code>mfe-&lt;domain&gt;</code>).</li>
+        <li>Module Federation: remotes + exposed modules + shared singletons.</li>
+        <li>Cross-team contract = name + signature. Nothing else.</li>
+        <li>Cross-cutting concerns via runtime contracts: auth (window SDK), theme (CSS vars), data (<code>accountId</code>).</li>
+        <li>Type generation per package — decoupled contracts.</li>
+        <li>Three dev modes, three deploy modes.</li>
+        <li>Trade-offs: autonomy ↔ coordination.</li>
+      </ol>
+      <p class="muted" style="font-size: 0.75em; margin-top: 1em;">
+        Deeper reading: <code>ARCHITECTURE.md</code>, <code>DEMO_SCRIPT.md</code>, <code>CLAUDE.md</code>.
+      </p>
+    </section>
+
+    <section>
+      <h1>Questions?</h1>
+      <p class="subtitle">Pick any slide and I'll go deeper.</p>
+      <aside class="notes">
+        Common prep:
+        • Why MF vs iframes? Shared React, shared cache, single SPA navigation, no sandbox overhead.
+        • Why not Nx with build-time imports? We want runtime independence; Nx still couples builds.
+        • Testing? Each MFE tests its exposed components; shell has integration tests that mock remotes.
+        • Versioning? Remote URLs can be versioned (/v2/remoteEntry.js); manifests resolve.
+      </aside>
+    </section>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({
+    plugins: [RevealHighlight, RevealNotes],
+    hash: true,
+    slideNumber: "c/t",
+    transition: "fade",
+    transitionSpeed: "fast",
+    controlsTutorial: false,
+    pdfSeparateFragments: false,
+    width: 1280,
+    height: 800,
+    margin: 0.06,
+  });
+</script>
+</body>
+</html>
