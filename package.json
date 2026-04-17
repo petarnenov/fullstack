@@ -1,21 +1,28 @@
 {
-	"name": "fullstack-monorepo",
+	"name": "asset-management-platform",
 	"version": "1.0.0",
 	"private": true,
 	"workspaces": [
 		"packages/*"
 	],
 	"scripts": {
-		"dev": "npm run generate:types && npm run build:frontend && npm run build:micro && concurrently \"npm run dev:backend\" \"npm run preview:frontend\" \"npm run dev:micro\"",
-		"dev:backend": "npm run dev --workspace=backend",
-		"dev:frontend": "npm run dev --workspace=frontend",
-		"dev:micro": "npm run preview --workspace=micro-frontend",
-		"preview:frontend": "npm run preview --workspace=frontend",
-		"build": "npm run build --workspaces",
-		"build:backend": "npm run build --workspace=backend",
-		"build:frontend": "npm run build --workspace=frontend",
-		"build:micro": "npm run build --workspace=micro-frontend",
-		"generate:types": "npm run generate:types --workspace=backend && npm run generate:types --workspace=micro-frontend"
+		"generate:types": "npm run generate:types --workspace=@amp/api",
+		"build:api": "npm run build --workspace=@amp/api",
+		"build:shell": "npm run build --workspace=@amp/platform-shell",
+		"build:billing": "npm run build --workspace=@amp/mfe-billing",
+		"build:accounts": "npm run build --workspace=@amp/mfe-open-account",
+		"build:trading": "npm run build --workspace=@amp/mfe-trading",
+		"build": "npm run build:api && npm run build:billing && npm run build:accounts && npm run build:trading && npm run build:shell",
+		"dev:api": "npm run dev --workspace=@amp/api",
+		"dev:shell": "npm run dev --workspace=@amp/platform-shell",
+		"dev:billing": "npm run preview --workspace=@amp/mfe-billing",
+		"dev:accounts": "npm run preview --workspace=@amp/mfe-open-account",
+		"dev:trading": "npm run preview --workspace=@amp/mfe-trading",
+		"dev:billing:standalone": "npm run dev --workspace=@amp/mfe-billing",
+		"dev:accounts:standalone": "npm run dev --workspace=@amp/mfe-open-account",
+		"dev:trading:standalone": "npm run dev --workspace=@amp/mfe-trading",
+		"dev": "npm run generate:types && npm run build:billing && npm run build:accounts && npm run build:trading && concurrently -k --kill-others-on-fail -n api,billing,accounts,trading,shell -c blue,yellow,cyan,magenta,green \"npm run dev:api\" \"npm run dev:billing\" \"npm run dev:accounts\" \"npm run dev:trading\" \"npm run dev:shell\"",
+		"test": "npm run test --workspace=@amp/api"
 	},
 	"devDependencies": {
 		"concurrently": "^8.2.2",

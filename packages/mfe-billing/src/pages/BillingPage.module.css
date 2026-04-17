@@ -1,0 +1,101 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  isolation: isolate;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.title {
+  margin: 0 0 0.25rem 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.ownerTag {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--team-billing-soft);
+  border: 1px solid var(--team-billing-soft);
+  color: var(--team-billing);
+  border-radius: 999px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.summaryStrip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.statValue {
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.statLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.stat_danger .statValue {
+  color: var(--danger-text);
+}
+.stat_warn .statValue {
+  color: var(--warning-text);
+}
+.stat_success .statValue {
+  color: var(--success-text);
+}
+
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.tab {
+  padding: 0.5rem 0.9rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+.tabActive {
+  color: var(--team-billing);
+  border-bottom-color: var(--team-billing);
+}
