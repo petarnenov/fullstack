@@ -1,0 +1,84 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  isolation: isolate;
+}
+
+.primary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.amount {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--team-billing);
+  font-variant-numeric: tabular-nums;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+.breakdown {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  flex: 1;
+}
+
+.chipValue {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.chipLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.overdue {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+}
+
+.overdue .chipValue {
+  color: var(--danger-text);
+}
+
+.footer {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.loading,
+.error {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.error {
+  color: var(--danger-text);
+}
