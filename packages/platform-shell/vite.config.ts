@@ -16,6 +16,7 @@ export default defineConfig({
       remotes: {
         mfe_billing: "http://localhost:5175/assets/remoteEntry.js",
         mfe_open_account: "http://localhost:5174/assets/remoteEntry.js",
+        mfe_trading: "http://localhost:5176/assets/remoteEntry.js",
       },
       shared: ["react", "react-dom", "@tanstack/react-query"],
     }),

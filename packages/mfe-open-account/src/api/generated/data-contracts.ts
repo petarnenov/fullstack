@@ -10,6 +10,16 @@
  * ---------------------------------------------------------------
  */
 
+export enum OrderStatus {
+  Filled = "filled",
+  Rejected = "rejected",
+}
+
+export enum OrderSide {
+  Buy = "buy",
+  Sell = "sell",
+}
+
 export enum OnboardingStep {
   PersonalInfo = "personal_info",
   IdentityVerification = "identity_verification",
@@ -46,6 +56,39 @@ export enum Currency {
   USD = "USD",
   EUR = "EUR",
   GBP = "GBP",
+}
+
+export enum UserRole {
+  Admin = "admin",
+  Operator = "operator",
+  Analyst = "analyst",
+}
+
+export interface AuthenticatedUser {
+  id: string;
+  /** @format email */
+  email: string;
+  fullName: string;
+  role: UserRole;
+  tenantId: string;
+}
+
+export interface LoginRequest {
+  /** @format email */
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: AuthenticatedUser;
+}
+
+export interface DemoCredential {
+  /** @format email */
+  email: string;
+  password: string;
+  role: string;
 }
 
 export interface Invoice {
@@ -123,6 +166,62 @@ export interface AdvanceStepRequest {
   step: OnboardingStep;
 }
 
+export interface TradingSymbol {
+  ticker: string;
+  name: string;
+  sector: string;
+  /** @format float */
+  lastPrice: number;
+  /** @format float */
+  change24h: number;
+}
+
+export interface Position {
+  ticker: string;
+  name: string;
+  quantity: number;
+  averageCost: number;
+  marketValue: number;
+  unrealizedPnL: number;
+  unrealizedPnLPercent: number;
+}
+
+export interface Order {
+  id: string;
+  ticker: string;
+  side: OrderSide;
+  quantity: number;
+  fillPrice: number;
+  total: number;
+  status: OrderStatus;
+  rejectionReason: string | null;
+  /** @format date-time */
+  placedAt: string;
+}
+
+export interface PlaceOrderRequest {
+  ticker: string;
+  side: OrderSide;
+  quantity: number;
+}
+
+export interface PortfolioSummary {
+  totalMarketValue: number;
+  totalCostBasis: number;
+  totalUnrealizedPnL: number;
+  totalUnrealizedPnLPercent: number;
+  positionsCount: number;
+  topHoldingTicker: string | null;
+}
+
+export type AuthLoginCreateData = LoginResponse;
+
+export type AuthLogoutCreateData = any;
+
+export type AuthMeListData = AuthenticatedUser;
+
+export type AuthDemoCredentialsListData = DemoCredential[];
+
 export type BillingInvoicesListData = Invoice[];
 
 export interface BillingInvoicesDetailParams {
@@ -158,3 +257,15 @@ export interface AccountsAdvanceCreateParams {
 }
 
 export type AccountsAdvanceCreateData = Account;
+
+export type TradingSymbolsListData = TradingSymbol[];
+
+export type TradingPositionsListData = Position[];
+
+export type TradingOrdersListData = Order[];
+
+export type TradingOrdersCreateData = Order;
+
+export type TradingOrdersCreateError = Order;
+
+export type TradingPortfolioListData = PortfolioSummary;

@@ -5,6 +5,8 @@ Goal: they should leave understanding what Module Federation buys them, what it 
 
 Total budget: 30 minutes. Cut ruthlessly if running long.
 
+Before a session, clear `amp.auth.token` from localStorage (DevTools → Application → Local Storage) so the first load shows the login page.
+
 ## Before you start
 
 ```bash
@@ -25,15 +27,15 @@ Have the repo open in the editor. Keep a terminal visible for restart demos.
 
 ## 0 · Context (2 min)
 
-> "This is an asset-management platform. In a real org, you'd have a Billing team, an Open Account team, and a Platform Core team. Each ships at its own cadence, with its own tests, its own on-call. How do we let them share one app without tripping over each other?"
+> "This is an asset-management platform. In a real org, you'd have Billing, Open Account, Trading, and a Platform Core team. Each ships at its own cadence, with its own tests, its own on-call. How do we let them share one app without tripping over each other?"
 
-Draw the triangle:
+Draw it:
 
 ```
-        Platform Core (shell)
-              /     \
-             /       \
-       Billing ─── Open Account
+          Platform Core (shell)
+          /       |         \
+         /        |          \
+    Billing  Open Account  Trading
 ```
 
 Key question: **what crosses the team boundary?** Answer we'll demo: a component name and its props. Nothing else.
@@ -46,39 +48,61 @@ Open `packages/`:
 
 ```
 packages/
-├── api/                 # Express, domain-split
+├── api/                 # Express, domain-split (4 domains)
 ├── platform-shell/      # Host
 ├── mfe-billing/         # Remote
-└── mfe-open-account/    # Remote
+├── mfe-open-account/    # Remote
+└── mfe-trading/         # Remote
 ```
 
-Show `package.json` names: `@amp/api`, `@amp/platform-shell`, `@amp/mfe-billing`, `@amp/mfe-open-account`.
+Show `package.json` names: `@amp/api`, `@amp/platform-shell`, `@amp/mfe-billing`, `@amp/mfe-open-account`, `@amp/mfe-trading`.
 
 Point at `ARCHITECTURE.md` — the team-ownership diagram.
 
-Open `packages/api/src/domains/` — two domain folders, each with router + repo + schema. Tell them: "If we ever need a Billing BFF separate from an Accounts BFF, this is already half-done."
+Open `packages/api/src/domains/` — four domain folders (auth, billing, accounts, trading), each with router + repo + schema. Tell them: "If we ever need a per-team BFF, this is already half-done."
 
 ---
 
-## 2 · The shell has no idea what it's composing (5 min)
+## 2 · Sign in — auth is a shell concern (3 min)
+
+Open http://localhost:5173 — you land on `/login`.
+
+> "Every non-login route is gated by a `<ProtectedRoute>` in the shell. The MFE bundles don't even load until the shell's auth context says so — that's the blast-radius win of keeping auth in Platform Core."
+
+Click one of the **demo credential** rows to autofill. Sign in.
+
+- The shell calls `POST /api/auth/login`, stores the token in `localStorage`, installs `window.__AMP_PLATFORM__ = { getToken }`, and invalidates the whole React Query cache so widgets fetch under the new identity.
+- Every request to `/api/billing/*`, `/api/accounts/*` and `/api/trading/*` now carries `Authorization: Bearer …` because each MFE's axios interceptor reads from that window bag.
+
+Open `packages/platform-shell/src/auth/platformSdk.ts` and read the five-line interface aloud. Then open `packages/mfe-billing/src/api/index.ts` → the request interceptor. **That's the entire cross-team auth contract.** No shared package, no federation-exposed module. Every MFE duplicates the interface inline intentionally.
+
+> "This trade-off is the 2-minute architecture conversation. The window bag is minimum-viable for a demo. Federation-exposed SDK or an import map is the production upgrade — same shape, stronger type seam."
+
+Reload the page. You stay logged in: the shell's bootstrap effect calls `/api/auth/me`, rehydrates the user, and replays the widgets.
+
+---
+
+## 3 · The shell has no idea what it's composing (5 min)
 
 Open http://localhost:5173 — Dashboard.
 
 > "This page looks like a single product. It isn't. Watch."
 
-Show the three tiles on the Dashboard:
+Show the four tiles on the Dashboard:
 
-- **Outstanding balance** — with the orange "Billing team" badge.
-- **Onboarding progress** — with the teal "Open Account team" badge.
-- **Platform health** — with the purple "Platform Core" badge.
+- **Outstanding balance** — orange "Billing team" badge.
+- **Onboarding progress** — teal "Open Account team" badge.
+- **Portfolio** — violet "Trading team" badge.
+- **Platform health** — indigo "Platform Core" badge.
 
 Point at the bottom of the page: "How this page is composed" — reads off the ownership explicitly.
 
-Open `packages/platform-shell/src/pages/DashboardPage.tsx`. Two lines that matter:
+Open `packages/platform-shell/src/pages/DashboardPage.tsx`. Three lines that matter:
 
 ```tsx
 const OutstandingBalanceWidget = lazy(() => import("mfe_billing/OutstandingBalanceWidget"));
 const OnboardingProgressWidget = lazy(() => import("mfe_open_account/OnboardingProgressWidget"));
+const PortfolioWidget         = lazy(() => import("mfe_trading/PortfolioWidget"));
 ```
 
 > "That's it. That's the integration. The shell has no source code for these widgets. It knows a name and a shape."
@@ -91,6 +115,7 @@ federation({
   remotes: {
     mfe_billing: "http://localhost:5175/assets/remoteEntry.js",
     mfe_open_account: "http://localhost:5174/assets/remoteEntry.js",
+    mfe_trading: "http://localhost:5176/assets/remoteEntry.js",
   },
   shared: ["react", "react-dom", "@tanstack/react-query"],
 }),
@@ -99,13 +124,13 @@ federation({
 Walk through:
 
 - `remotes` — where to fetch each team's bundle at runtime.
-- `shared` — one React, one React DOM, one QueryClient across all three apps.
+- `shared` — one React, one React DOM, one QueryClient across all four apps.
 
 Open `packages/mfe-billing/vite.config.ts` and show the matching `exposes` block. **That's the contract.**
 
 ---
 
-## 3 · Run a team's MFE standalone (3 min)
+## 4 · Run a team's MFE standalone (3 min)
 
 > "A Billing engineer is fixing a bug in the invoices table. Do they need the shell running? No."
 
@@ -119,7 +144,7 @@ Jump to http://localhost:5174 — open-account standalone. Same story.
 
 ---
 
-## 4 · Independent deployment, visualised (4 min)
+## 5 · Independent deployment, visualised (4 min)
 
 Back to http://localhost:5173.
 
@@ -139,7 +164,7 @@ Restart `mfe-billing`: `npm run dev:billing` in a new terminal (or `Ctrl+C` / re
 
 ---
 
-## 5 · Shared cache in action (4 min)
+## 6 · Shared cache in action (3 min)
 
 Navigate to **/billing** in the shell. Point at the "Outstanding balance" stat bar. Note the value.
 
@@ -169,7 +194,7 @@ Same key family. Different component. Different module. Different team.
 
 ---
 
-## 6 · End-to-end workflow across teams (4 min)
+## 7 · End-to-end workflow across teams (3 min)
 
 > "Let me show you a flow that touches both teams."
 
@@ -180,7 +205,7 @@ Same key family. Different component. Different module. Different team.
 
 ---
 
-## 7 · Types & API contract (3 min)
+## 8 · Types & API contract (2 min)
 
 Open `packages/api/src/swagger.ts` briefly — point at `tags: ["Billing"]` and `tags: ["Accounts"]`.
 
@@ -196,7 +221,7 @@ Point at the output: same Swagger, two independent generated client folders. Eac
 
 ---
 
-## 8 · Tradeoffs (2 min)
+## 9 · Tradeoffs (2 min)
 
 Be honest. Show this slide or just read it aloud:
 
@@ -214,7 +239,7 @@ Be honest. Show this slide or just read it aloud:
 
 ---
 
-## 9 · Q&A (pad)
+## 10 · Q&A (pad)
 
 Common questions worth preparing:
 
@@ -230,6 +255,9 @@ Common questions worth preparing:
 
 | Moment                              | URL / file                                       |
 | ----------------------------------- | ------------------------------------------------ |
+| Login page                          | http://localhost:5173/login                      |
+| Auth context + platform SDK         | `packages/platform-shell/src/auth/platformSdk.ts`, `packages/platform-shell/src/auth/AuthContext.tsx` |
+| MFE auth interceptor                | `packages/mfe-billing/src/api/index.ts`          |
 | Dashboard composition               | http://localhost:5173                            |
 | Billing page                        | http://localhost:5173/billing                    |
 | Accounts page                       | http://localhost:5173/accounts                   |

@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios, { type InternalAxiosRequestConfig } from "axios";
 import type {
   BillingSummary,
   Invoice,
@@ -16,10 +16,42 @@ export type {
   TransactionType,
 } from "./generated/data-contracts";
 
+/**
+ * Cross-MFE auth contract owned by the shell (see
+ * platform-shell/src/auth/platformSdk.ts). The MFE does not import shell code;
+ * it reads the SDK off window at runtime. The shape is duplicated here
+ * intentionally — one-line contract, zero build-time coupling.
+ */
+interface PlatformSdk {
+  getToken(): string | null;
+}
+
+const AUTH_EXPIRED_EVENT = "amp:auth-expired";
+
 const http = axios.create({
   baseURL: "/api",
   headers: { "Content-Type": "application/json" },
 });
+
+http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const sdk = (window as unknown as { __AMP_PLATFORM__?: PlatformSdk })
+    .__AMP_PLATFORM__;
+  const token = sdk?.getToken?.() ?? null;
+  if (token) {
+    config.headers.set("Authorization", `Bearer ${token}`);
+  }
+  return config;
+});
+
+http.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT));
+    }
+    return Promise.reject(error);
+  },
+);
 
 export const billingApi = {
   listInvoices: () =>

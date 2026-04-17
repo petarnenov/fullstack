@@ -1,11 +1,12 @@
 import styles from "./TeamBadge.module.css";
 
-export type TeamKey = "shell" | "billing" | "accounts";
+export type TeamKey = "shell" | "billing" | "accounts" | "trading";
 
 const labels: Record<TeamKey, string> = {
   shell: "Platform Core",
   billing: "Billing team",
   accounts: "Open Account team",
+  trading: "Trading team",
 };
 
 export default function TeamBadge({ team }: { team: TeamKey }) {

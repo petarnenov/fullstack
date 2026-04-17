@@ -1,4 +1,4 @@
-import { useAuth } from "../auth/AuthContext";
+import { useAuthenticatedUser } from "../auth/AuthContext";
 import TeamBadge from "../components/TeamBadge";
 import { useTheme, type ThemeMode } from "../theme/ThemeContext";
 import styles from "./SettingsPage.module.css";
@@ -10,7 +10,7 @@ const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
 ];
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const user = useAuthenticatedUser();
   const { mode, resolved, setMode } = useTheme();
 
   return (
@@ -79,6 +79,11 @@ export default function SettingsPage() {
             <code>mfe_open_account</code> →{" "}
             <code>http://localhost:5174/assets/remoteEntry.js</code>
             <TeamBadge team="accounts" />
+          </li>
+          <li>
+            <code>mfe_trading</code> →{" "}
+            <code>http://localhost:5176/assets/remoteEntry.js</code>
+            <TeamBadge team="trading" />
           </li>
         </ul>
         <p className={styles.note}>

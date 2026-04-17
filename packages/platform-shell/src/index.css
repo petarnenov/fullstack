@@ -31,6 +31,8 @@
   --team-billing-soft: #ffedd5;
   --team-accounts: #0d9488;
   --team-accounts-soft: #ccfbf1;
+  --team-trading: #9333ea;
+  --team-trading-soft: #f3e8ff;
 }
 
 [data-theme="dark"] {
@@ -65,6 +67,8 @@
   --team-billing-soft: #3a2815;
   --team-accounts: #5ad5c6;
   --team-accounts-soft: #123a35;
+  --team-trading: #c084fc;
+  --team-trading-soft: #2e1a42;
 }
 
 * {

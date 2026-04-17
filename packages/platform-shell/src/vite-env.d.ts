@@ -24,3 +24,13 @@ declare module "mfe_open_account/OnboardingProgressWidget" {
   const OnboardingProgressWidget: React.ComponentType;
   export default OnboardingProgressWidget;
 }
+
+declare module "mfe_trading/TradingPage" {
+  const TradingPage: React.ComponentType;
+  export default TradingPage;
+}
+
+declare module "mfe_trading/PortfolioWidget" {
+  const PortfolioWidget: React.ComponentType;
+  export default PortfolioWidget;
+}

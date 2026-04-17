@@ -9,9 +9,11 @@
 		"test": "jest",
 		"test:watch": "jest --watch",
 		"generate:swagger": "tsx src/generateSwagger.ts",
+		"generate:types:shell": "swagger-typescript-api generate -p ./swagger.json -o ../platform-shell/src/api/generated -n index.ts --modular --axios --extract-request-params --extract-request-body --extract-response-body --extract-response-error",
 		"generate:types:billing": "swagger-typescript-api generate -p ./swagger.json -o ../mfe-billing/src/api/generated -n index.ts --modular --axios --extract-request-params --extract-request-body --extract-response-body --extract-response-error",
 		"generate:types:accounts": "swagger-typescript-api generate -p ./swagger.json -o ../mfe-open-account/src/api/generated -n index.ts --modular --axios --extract-request-params --extract-request-body --extract-response-body --extract-response-error",
-		"generate:types": "npm run generate:swagger && npm run generate:types:billing && npm run generate:types:accounts"
+		"generate:types:trading": "swagger-typescript-api generate -p ./swagger.json -o ../mfe-trading/src/api/generated -n index.ts --modular --axios --extract-request-params --extract-request-body --extract-response-body --extract-response-error",
+		"generate:types": "npm run generate:swagger && npm run generate:types:shell && npm run generate:types:billing && npm run generate:types:accounts && npm run generate:types:trading"
 	},
 	"dependencies": {
 		"cors": "^2.8.5",
