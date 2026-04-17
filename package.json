@@ -22,6 +22,7 @@
 		"dev:accounts:standalone": "npm run dev --workspace=@amp/mfe-open-account",
 		"dev:trading:standalone": "npm run dev --workspace=@amp/mfe-trading",
 		"dev": "npm run generate:types && npm run build:billing && npm run build:accounts && npm run build:trading && concurrently -k --kill-others-on-fail -n api,billing,accounts,trading,shell -c blue,yellow,cyan,magenta,green \"npm run dev:api\" \"npm run dev:billing\" \"npm run dev:accounts\" \"npm run dev:trading\" \"npm run dev:shell\"",
+		"kill:dev": "bash -c 'P=$(lsof -ti :3000 -i :5173 -i :5174 -i :5175 -i :5176 | sort -u); if [ -z \"$P\" ]; then echo \"no dev processes on 3000/5173-5176\"; exit 0; fi; echo \"$P\" | xargs kill 2>/dev/null; sleep 1; S=$(lsof -ti :3000 -i :5173 -i :5174 -i :5175 -i :5176 | sort -u); if [ -n \"$S\" ]; then echo \"$S\" | xargs kill -9 2>/dev/null; fi; echo \"dev ports cleared\"'",
 		"test": "npm run test --workspace=@amp/api"
 	},
 	"devDependencies": {
