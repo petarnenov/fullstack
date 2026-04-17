@@ -335,10 +335,87 @@ export const swaggerDocument = {
         },
       },
     },
+    "/api/trading/accounts": {
+      get: {
+        summary:
+          "List trading accounts with cash balance (Trading view, NOT the Accounts domain)",
+        tags: ["Trading"],
+        responses: {
+          "200": {
+            description: "Trading accounts",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "array",
+                  items: { $ref: "#/components/schemas/TradingAccountView" },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/trading/cash/{accountId}": {
+      get: {
+        summary: "Cash balance for a given account",
+        tags: ["Trading"],
+        parameters: [
+          {
+            name: "accountId",
+            in: "path",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Cash balance",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CashBalance" },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/trading/cash/deposit": {
+      post: {
+        summary: "Deposit cash into an account",
+        tags: ["Trading"],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/DepositRequest" },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Updated cash balance",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CashBalance" },
+              },
+            },
+          },
+          "400": { description: "Invalid payload" },
+        },
+      },
+    },
     "/api/trading/positions": {
       get: {
-        summary: "Current portfolio positions",
+        summary: "Positions, optionally filtered by account",
         tags: ["Trading"],
+        parameters: [
+          {
+            name: "accountId",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+        ],
         responses: {
           "200": {
             description: "Positions",
@@ -356,8 +433,17 @@ export const swaggerDocument = {
     },
     "/api/trading/orders": {
       get: {
-        summary: "Order history (most recent first)",
+        summary:
+          "Order history (most recent first), optionally filtered by account",
         tags: ["Trading"],
+        parameters: [
+          {
+            name: "accountId",
+            in: "query",
+            required: false,
+            schema: { type: "string" },
+          },
+        ],
         responses: {
           "200": {
             description: "Orders",
@@ -395,7 +481,8 @@ export const swaggerDocument = {
           "400": { description: "Invalid payload" },
           "404": { description: "Unknown ticker" },
           "409": {
-            description: "Order rejected (e.g. insufficient position on sell)",
+            description:
+              "Order rejected (insufficient position on sell or insufficient cash on buy)",
             content: {
               "application/json": {
                 schema: { $ref: "#/components/schemas/Order" },
@@ -407,8 +494,17 @@ export const swaggerDocument = {
     },
     "/api/trading/portfolio": {
       get: {
-        summary: "Portfolio summary (used by PortfolioWidget)",
+        summary:
+          "Portfolio summary for one account (used by PortfolioWidget)",
         tags: ["Trading"],
+        parameters: [
+          {
+            name: "accountId",
+            in: "query",
+            required: true,
+            schema: { type: "string" },
+          },
+        ],
         responses: {
           "200": {
             description: "Portfolio",
@@ -418,6 +514,7 @@ export const swaggerDocument = {
               },
             },
           },
+          "400": { description: "Missing accountId" },
         },
       },
     },
@@ -642,6 +739,7 @@ export const swaggerDocument = {
       Position: {
         type: "object",
         required: [
+          "accountId",
           "ticker",
           "name",
           "quantity",
@@ -651,6 +749,7 @@ export const swaggerDocument = {
           "unrealizedPnLPercent",
         ],
         properties: {
+          accountId: { type: "string" },
           ticker: { type: "string" },
           name: { type: "string" },
           quantity: { type: "number" },
@@ -664,6 +763,7 @@ export const swaggerDocument = {
         type: "object",
         required: [
           "id",
+          "accountId",
           "ticker",
           "side",
           "quantity",
@@ -675,6 +775,7 @@ export const swaggerDocument = {
         ],
         properties: {
           id: { type: "string" },
+          accountId: { type: "string" },
           ticker: { type: "string" },
           side: { $ref: "#/components/schemas/OrderSide" },
           quantity: { type: "number" },
@@ -687,8 +788,9 @@ export const swaggerDocument = {
       },
       PlaceOrderRequest: {
         type: "object",
-        required: ["ticker", "side", "quantity"],
+        required: ["accountId", "ticker", "side", "quantity"],
         properties: {
+          accountId: { type: "string" },
           ticker: { type: "string" },
           side: { $ref: "#/components/schemas/OrderSide" },
           quantity: { type: "number" },
@@ -697,20 +799,52 @@ export const swaggerDocument = {
       PortfolioSummary: {
         type: "object",
         required: [
+          "accountId",
+          "cashAvailable",
           "totalMarketValue",
           "totalCostBasis",
           "totalUnrealizedPnL",
           "totalUnrealizedPnLPercent",
+          "totalEquity",
           "positionsCount",
           "topHoldingTicker",
         ],
         properties: {
+          accountId: { type: "string", nullable: true },
+          cashAvailable: { type: "number" },
           totalMarketValue: { type: "number" },
           totalCostBasis: { type: "number" },
           totalUnrealizedPnL: { type: "number" },
           totalUnrealizedPnLPercent: { type: "number" },
+          totalEquity: { type: "number" },
           positionsCount: { type: "number" },
           topHoldingTicker: { type: "string", nullable: true },
+        },
+      },
+      CashBalance: {
+        type: "object",
+        required: ["accountId", "cashAvailable", "currency"],
+        properties: {
+          accountId: { type: "string" },
+          cashAvailable: { type: "number" },
+          currency: { type: "string", enum: ["USD"] },
+        },
+      },
+      TradingAccountView: {
+        type: "object",
+        required: ["accountId", "cashAvailable", "currency"],
+        properties: {
+          accountId: { type: "string" },
+          cashAvailable: { type: "number" },
+          currency: { type: "string", enum: ["USD"] },
+        },
+      },
+      DepositRequest: {
+        type: "object",
+        required: ["accountId", "amount"],
+        properties: {
+          accountId: { type: "string" },
+          amount: { type: "number", minimum: 0.01 },
         },
       },
     },

@@ -1,0 +1,36 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 280px;
+}
+
+.label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--team-trading);
+  box-shadow: 0 0 0 2px var(--team-trading-soft);
+}
+
+.state {
+  padding: 0.5rem 0.75rem;
+  color: var(--text-muted);
+  font-size: 13px;
+}

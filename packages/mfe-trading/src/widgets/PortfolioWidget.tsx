@@ -14,40 +14,73 @@ const PNL = new Intl.NumberFormat("en-US", {
   signDisplay: "always",
 });
 
+/**
+ * Widget shows the first trading account's portfolio. In a real platform
+ * this would be the user's "primary" account, but user→account mapping
+ * isn't modelled in this POC — the selector on the full /trading page is
+ * where multi-account UX lives.
+ */
 export default function PortfolioWidget() {
-  const { data, isLoading, error } = useQuery({
-    queryKey: tradingKeys.portfolio(),
-    queryFn: tradingApi.portfolio,
+  const accounts = useQuery({
+    queryKey: tradingKeys.accounts(),
+    queryFn: tradingApi.listAccounts,
   });
 
-  if (isLoading) return <div className={styles.loading}>Loading…</div>;
-  if (error || !data)
-    return <div className={styles.error}>Couldn't load portfolio</div>;
+  const primaryId = accounts.data?.[0]?.accountId ?? null;
 
-  const pnlPositive = data.totalUnrealizedPnL >= 0;
+  const portfolio = useQuery({
+    queryKey: primaryId
+      ? tradingKeys.portfolio(primaryId)
+      : ["trading", "portfolio", "none"],
+    queryFn: () => tradingApi.portfolio(primaryId!),
+    enabled: !!primaryId,
+  });
+
+  if (accounts.isLoading || portfolio.isLoading) {
+    return <div className={styles.loading}>Loading…</div>;
+  }
+  if (accounts.error || portfolio.error || !portfolio.data) {
+    return <div className={styles.error}>Couldn't load portfolio</div>;
+  }
+
+  const p = portfolio.data;
+  const pnlPositive = p.totalUnrealizedPnL >= 0;
 
   return (
     <div className={styles.root}>
       <div className={styles.primary}>
-        <span className={styles.value}>
-          {MONEY.format(data.totalMarketValue)}
-        </span>
-        <span className={styles.label}>market value</span>
+        <span className={styles.value}>{MONEY.format(p.totalEquity)}</span>
+        <span className={styles.label}>total equity</span>
+      </div>
+      <div className={styles.breakdown}>
+        <div className={styles.chip}>
+          <span className={styles.chipValue}>
+            {MONEY.format(p.cashAvailable)}
+          </span>
+          <span className={styles.chipLabel}>cash</span>
+        </div>
+        <div className={styles.chip}>
+          <span className={styles.chipValue}>
+            {MONEY.format(p.totalMarketValue)}
+          </span>
+          <span className={styles.chipLabel}>positions</span>
+        </div>
       </div>
       <div
         className={`${styles.pnl} ${pnlPositive ? styles.pnlPositive : styles.pnlNegative}`}
       >
         <span className={styles.pnlValue}>
-          {PNL.format(data.totalUnrealizedPnL)}
+          {PNL.format(p.totalUnrealizedPnL)}
         </span>
         <span className={styles.pnlPercent}>
           ({pnlPositive ? "+" : ""}
-          {data.totalUnrealizedPnLPercent.toFixed(2)}%)
+          {p.totalUnrealizedPnLPercent.toFixed(2)}%)
         </span>
       </div>
       <div className={styles.footer}>
-        {data.positionsCount} positions
-        {data.topHoldingTicker && <> · top: {data.topHoldingTicker}</>}
+        {p.positionsCount} positions
+        {p.topHoldingTicker && <> · top: {p.topHoldingTicker}</>}
+        {primaryId && <> · {primaryId}</>}
       </div>
     </div>
   );

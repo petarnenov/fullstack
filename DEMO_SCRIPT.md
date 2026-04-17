@@ -194,7 +194,25 @@ Same key family. Different component. Different module. Different team.
 
 ---
 
-## 7 · End-to-end workflow across teams (3 min)
+## 7 · Cash flows through Trading (optional, 2 min)
+
+Navigate to **/trading**. Show the account selector strip at the top — four accounts, each seeded at $1,000,000 (primary has less because of seeded positions).
+
+Click **+ Deposit** and add $50,000 to `acc_verified_2`. Cash pill updates.
+
+Switch to a symbol (e.g., MSFT), enter a quantity, click **Buy**. Cash pill drops by the order total. Switch to the order history at the bottom — new filled order tagged with that accountId.
+
+Sell half the position. Cash goes up by the sell proceeds.
+
+Back to Dashboard. **PortfolioWidget's total equity has already updated** — same shared-cache story as section 6, now applied across cash + positions.
+
+Try a massive buy (like 100,000 NVDA on `acc_kyc_1`) — rejected with "Insufficient cash: have $1,000,000, need $94M" (409, shown in order history as a rejected row, cash untouched).
+
+> "Notice the Trading team owns its own cash ledger and per-account positions. Billing and Accounts also key off `accountId`, but nobody imports each other — each team's slice of 'what an account is' lives in its own repository. That's the architectural pattern you use to keep teams decoupled while still talking about the same customer."
+
+---
+
+## 8 · End-to-end workflow across teams (3 min)
 
 > "Let me show you a flow that touches both teams."
 
@@ -205,7 +223,7 @@ Same key family. Different component. Different module. Different team.
 
 ---
 
-## 8 · Types & API contract (2 min)
+## 9 · Types & API contract (2 min)
 
 Open `packages/api/src/swagger.ts` briefly — point at `tags: ["Billing"]` and `tags: ["Accounts"]`.
 
@@ -221,7 +239,7 @@ Point at the output: same Swagger, two independent generated client folders. Eac
 
 ---
 
-## 9 · Tradeoffs (2 min)
+## 10 · Tradeoffs (2 min)
 
 Be honest. Show this slide or just read it aloud:
 
@@ -239,7 +257,7 @@ Be honest. Show this slide or just read it aloud:
 
 ---
 
-## 10 · Q&A (pad)
+## 11 · Q&A (pad)
 
 Common questions worth preparing:
 

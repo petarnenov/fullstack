@@ -31,14 +31,22 @@ import {
   BillingSummaryListData,
   BillingTransactionsListData,
   CreateAccountRequest,
+  DepositRequest,
   LoginRequest,
   PayInvoiceRequest,
   PlaceOrderRequest,
+  TradingAccountsListData,
+  TradingCashDepositCreateData,
+  TradingCashDetailData,
+  TradingCashDetailParams,
   TradingOrdersCreateData,
   TradingOrdersCreateError,
   TradingOrdersListData,
+  TradingOrdersListParams,
   TradingPortfolioListData,
+  TradingPortfolioListParams,
   TradingPositionsListData,
+  TradingPositionsListParams,
   TradingSymbolsListData,
 } from "./data-contracts";
 import { ContentType, HttpClient, RequestParams } from "./http-client";
@@ -322,14 +330,14 @@ export class Api<
    * No description
    *
    * @tags Trading
-   * @name TradingPositionsList
-   * @summary Current portfolio positions
-   * @request GET:/api/trading/positions
+   * @name TradingAccountsList
+   * @summary List trading accounts with cash balance (Trading view, NOT the Accounts domain)
+   * @request GET:/api/trading/accounts
    * @secure
    */
-  tradingPositionsList = (params: RequestParams = {}) =>
-    this.request<TradingPositionsListData, any>({
-      path: `/api/trading/positions`,
+  tradingAccountsList = (params: RequestParams = {}) =>
+    this.request<TradingAccountsListData, any>({
+      path: `/api/trading/accounts`,
       method: "GET",
       secure: true,
       format: "json",
@@ -339,15 +347,82 @@ export class Api<
    * No description
    *
    * @tags Trading
+   * @name TradingCashDetail
+   * @summary Cash balance for a given account
+   * @request GET:/api/trading/cash/{accountId}
+   * @secure
+   */
+  tradingCashDetail = (
+    { accountId, ...query }: TradingCashDetailParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<TradingCashDetailData, any>({
+      path: `/api/trading/cash/${accountId}`,
+      method: "GET",
+      secure: true,
+      format: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Trading
+   * @name TradingCashDepositCreate
+   * @summary Deposit cash into an account
+   * @request POST:/api/trading/cash/deposit
+   * @secure
+   */
+  tradingCashDepositCreate = (
+    data: DepositRequest,
+    params: RequestParams = {},
+  ) =>
+    this.request<TradingCashDepositCreateData, void>({
+      path: `/api/trading/cash/deposit`,
+      method: "POST",
+      body: data,
+      secure: true,
+      type: ContentType.Json,
+      format: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Trading
+   * @name TradingPositionsList
+   * @summary Positions, optionally filtered by account
+   * @request GET:/api/trading/positions
+   * @secure
+   */
+  tradingPositionsList = (
+    query: TradingPositionsListParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<TradingPositionsListData, any>({
+      path: `/api/trading/positions`,
+      method: "GET",
+      query: query,
+      secure: true,
+      format: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Trading
    * @name TradingOrdersList
-   * @summary Order history (most recent first)
+   * @summary Order history (most recent first), optionally filtered by account
    * @request GET:/api/trading/orders
    * @secure
    */
-  tradingOrdersList = (params: RequestParams = {}) =>
+  tradingOrdersList = (
+    query: TradingOrdersListParams,
+    params: RequestParams = {},
+  ) =>
     this.request<TradingOrdersListData, any>({
       path: `/api/trading/orders`,
       method: "GET",
+      query: query,
       secure: true,
       format: "json",
       ...params,
@@ -376,14 +451,18 @@ export class Api<
    *
    * @tags Trading
    * @name TradingPortfolioList
-   * @summary Portfolio summary (used by PortfolioWidget)
+   * @summary Portfolio summary for one account (used by PortfolioWidget)
    * @request GET:/api/trading/portfolio
    * @secure
    */
-  tradingPortfolioList = (params: RequestParams = {}) =>
-    this.request<TradingPortfolioListData, any>({
+  tradingPortfolioList = (
+    query: TradingPortfolioListParams,
+    params: RequestParams = {},
+  ) =>
+    this.request<TradingPortfolioListData, void>({
       path: `/api/trading/portfolio`,
       method: "GET",
+      query: query,
       secure: true,
       format: "json",
       ...params,

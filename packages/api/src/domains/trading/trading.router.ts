@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { PlaceOrderRequestSchema } from "./trading.schemas";
+import {
+  DepositRequestSchema,
+  PlaceOrderRequestSchema,
+} from "./trading.schemas";
 import {
   SymbolNotFoundError,
   tradingRepository,
@@ -11,16 +14,49 @@ tradingRouter.get("/symbols", (_req, res) => {
   res.json(tradingRepository.listSymbols());
 });
 
-tradingRouter.get("/positions", (_req, res) => {
-  res.json(tradingRepository.listPositions());
+tradingRouter.get("/accounts", (_req, res) => {
+  res.json(tradingRepository.listTradingAccounts());
 });
 
-tradingRouter.get("/orders", (_req, res) => {
-  res.json(tradingRepository.listOrders());
+tradingRouter.get("/cash/:accountId", (req, res) => {
+  res.json(tradingRepository.getCash(req.params.accountId));
 });
 
-tradingRouter.get("/portfolio", (_req, res) => {
-  res.json(tradingRepository.getPortfolio());
+tradingRouter.post("/cash/deposit", (req, res) => {
+  const parsed = DepositRequestSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res
+      .status(400)
+      .json({ error: "Invalid deposit", issues: parsed.error.issues });
+  }
+  const balance = tradingRepository.deposit(parsed.data);
+  res.status(201).json(balance);
+});
+
+tradingRouter.get("/positions", (req, res) => {
+  const accountId = typeof req.query.accountId === "string"
+    ? req.query.accountId
+    : undefined;
+  res.json(tradingRepository.listPositions(accountId));
+});
+
+tradingRouter.get("/orders", (req, res) => {
+  const accountId = typeof req.query.accountId === "string"
+    ? req.query.accountId
+    : undefined;
+  res.json(tradingRepository.listOrders(accountId));
+});
+
+tradingRouter.get("/portfolio", (req, res) => {
+  const accountId = typeof req.query.accountId === "string"
+    ? req.query.accountId
+    : null;
+  if (!accountId) {
+    return res.status(400).json({
+      error: "Query param 'accountId' is required for portfolio summary",
+    });
+  }
+  res.json(tradingRepository.getPortfolio(accountId));
 });
 
 tradingRouter.post("/orders", (req, res) => {

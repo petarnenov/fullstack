@@ -1,0 +1,77 @@
+.wrap {
+  display: flex;
+  align-items: center;
+}
+
+.trigger {
+  padding: 0.4rem 0.9rem;
+  background: var(--team-trading-soft);
+  color: var(--team-trading);
+  border: 1px solid var(--team-trading);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.trigger:hover {
+  background: var(--team-trading);
+  color: var(--team-trading-contrast);
+}
+
+.form {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.input {
+  width: 110px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--team-trading);
+}
+
+.submit {
+  padding: 0.35rem 0.8rem;
+  background: var(--team-trading);
+  color: var(--team-trading-contrast);
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cancel {
+  padding: 0.35rem 0.6rem;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.flash {
+  font-size: 12px;
+  color: var(--success-text);
+  font-weight: 600;
+}

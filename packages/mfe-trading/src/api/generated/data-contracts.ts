@@ -177,6 +177,7 @@ export interface TradingSymbol {
 }
 
 export interface Position {
+  accountId: string;
   ticker: string;
   name: string;
   quantity: number;
@@ -188,6 +189,7 @@ export interface Position {
 
 export interface Order {
   id: string;
+  accountId: string;
   ticker: string;
   side: OrderSide;
   quantity: number;
@@ -200,18 +202,40 @@ export interface Order {
 }
 
 export interface PlaceOrderRequest {
+  accountId: string;
   ticker: string;
   side: OrderSide;
   quantity: number;
 }
 
 export interface PortfolioSummary {
+  accountId: string | null;
+  cashAvailable: number;
   totalMarketValue: number;
   totalCostBasis: number;
   totalUnrealizedPnL: number;
   totalUnrealizedPnLPercent: number;
+  totalEquity: number;
   positionsCount: number;
   topHoldingTicker: string | null;
+}
+
+export interface CashBalance {
+  accountId: string;
+  cashAvailable: number;
+  currency: "USD";
+}
+
+export interface TradingAccountView {
+  accountId: string;
+  cashAvailable: number;
+  currency: "USD";
+}
+
+export interface DepositRequest {
+  accountId: string;
+  /** @min 0.01 */
+  amount: number;
 }
 
 export type AuthLoginCreateData = LoginResponse;
@@ -260,12 +284,34 @@ export type AccountsAdvanceCreateData = Account;
 
 export type TradingSymbolsListData = TradingSymbol[];
 
+export type TradingAccountsListData = TradingAccountView[];
+
+export interface TradingCashDetailParams {
+  accountId: string;
+}
+
+export type TradingCashDetailData = CashBalance;
+
+export type TradingCashDepositCreateData = CashBalance;
+
+export interface TradingPositionsListParams {
+  accountId?: string;
+}
+
 export type TradingPositionsListData = Position[];
+
+export interface TradingOrdersListParams {
+  accountId?: string;
+}
 
 export type TradingOrdersListData = Order[];
 
 export type TradingOrdersCreateData = Order;
 
 export type TradingOrdersCreateError = Order;
+
+export interface TradingPortfolioListParams {
+  accountId: string;
+}
 
 export type TradingPortfolioListData = PortfolioSummary;

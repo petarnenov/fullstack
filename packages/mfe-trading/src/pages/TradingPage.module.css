@@ -60,3 +60,48 @@
   letter-spacing: 0.04em;
   color: var(--text-muted);
 }
+
+.accountStrip {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.cashPill {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0.5rem 1rem;
+  background: var(--team-trading-soft);
+  border: 1px solid var(--team-trading-soft);
+  border-radius: 10px;
+}
+
+.cashLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.cashValue {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--team-trading);
+}
+
+.state {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+}

@@ -85,6 +85,21 @@
   gap: 4px;
 }
 
+.warn {
+  color: var(--danger-text);
+  font-weight: 700;
+}
+
+.warnBanner {
+  padding: 0.5rem 0.75rem;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger-text);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .summaryRow {
   display: flex;
   justify-content: space-between;

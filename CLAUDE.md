@@ -53,6 +53,7 @@ The shell writes a tiny SDK to `window.__AMP_PLATFORM__ = { getToken() }` when `
 - **`platform-shell`**: React Compiler is on (`babel-plugin-react-compiler`) — avoid manual `useMemo`/`useCallback` unless a profiler says otherwise. TS ambient declarations for federated imports are in `src/vite-env.d.ts`; forgetting to add one turns a new exposed module into a red TS error.
 - **`mfe-billing` / `mfe-open-account` / `mfe-trading`**: each has its own generated API client under `src/api/generated/`. Do not hand-edit; regenerate via `npm run generate:types` from root. Widgets and pages share the same `*Keys` query-key factory so cross-surface invalidation works.
 - **`api`**: repositories are in-memory and reset on every restart. The seeded data is hand-crafted to make the widgets look non-trivial in demos (overdue invoice, KYC-pending account, unrealised PnL across positions, etc.). Don't "clean up" the seed data without checking the demo script still makes sense. Trading orders are instant-fill at the seeded `lastPrice` — don't introduce real matching logic.
+- **Trading cash ledger**: lives in `trading.repository.ts` as a `Map<accountId, number>`, seeded at `INITIAL_CASH_USD` (1,000,000) for 4 known accounts and lazy-initialised to 1M for any new `accountId`. Buys debit, sells credit, over-buy/over-sell → `rejected` order (409) without mutating state. `accountId` is the shared convention across Billing + Accounts + Trading — don't introduce cross-domain imports; each team owns its own slice of what "an account" is.
 
 ## Swagger → types flow
 

@@ -9,7 +9,15 @@ const MONEY = new Intl.NumberFormat("en-US", {
   currency: "USD",
 });
 
-export default function OrderTicket({ symbols }: { symbols: TradingSymbol[] }) {
+export default function OrderTicket({
+  accountId,
+  cashAvailable,
+  symbols,
+}: {
+  accountId: string;
+  cashAvailable: number;
+  symbols: TradingSymbol[];
+}) {
   const queryClient = useQueryClient();
   const [ticker, setTicker] = useState<string>("");
   const [side, setSide] = useState<OrderSide>("buy");
@@ -31,6 +39,7 @@ export default function OrderTicket({ symbols }: { symbols: TradingSymbol[] }) {
 
   const qtyNumber = Number.parseFloat(quantity) || 0;
   const estimatedTotal = selected ? selected.lastPrice * qtyNumber : 0;
+  const overCash = side === "buy" && estimatedTotal > cashAvailable;
 
   const place = useMutation({
     mutationFn: tradingApi.placeOrder,
@@ -57,7 +66,7 @@ export default function OrderTicket({ symbols }: { symbols: TradingSymbol[] }) {
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!ticker || qtyNumber <= 0) return;
-    place.mutate({ ticker, side, quantity: qtyNumber });
+    place.mutate({ accountId, ticker, side, quantity: qtyNumber });
   };
 
   return (
@@ -121,7 +130,19 @@ export default function OrderTicket({ symbols }: { symbols: TradingSymbol[] }) {
             {selected ? MONEY.format(estimatedTotal) : "—"}
           </span>
         </div>
+        <div className={styles.summaryRow}>
+          <span>Cash available</span>
+          <span className={overCash ? styles.warn : undefined}>
+            {MONEY.format(cashAvailable)}
+          </span>
+        </div>
       </div>
+
+      {overCash && (
+        <div className={styles.warnBanner}>
+          Order exceeds available cash — will be rejected.
+        </div>
+      )}
 
       <button
         type="submit"

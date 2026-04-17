@@ -139,7 +139,9 @@ Both MFEs use CSS Modules + [`vite-plugin-css-injected-by-js`](https://github.co
 - `src/domains/auth/` — login, sessions, `/me`, owned by Platform Core.
 - `src/domains/billing/` — `billing.router.ts` + `billing.schemas.ts` (Zod) + `billing.repository.ts` (in-memory).
 - `src/domains/accounts/` — parallel structure.
-- `src/domains/trading/` — symbols, positions, orders, portfolio summary. Market orders fill instantly at the seeded last price; sell-more-than-held returns a `rejected` order (409).
+- `src/domains/trading/` — symbols, positions, orders, **per-account cash ledger**, portfolio summary. Market orders fill instantly at the seeded last price; positions + cash are keyed by `accountId` (Trading's own in-memory map, auto-inits unseen accounts to $1,000,000). Buys debit cash, sells credit cash; over-spends and over-sells both return `rejected` orders with 409.
+
+**Cross-domain convention.** `accountId` is the shared join key used by Billing (invoices reference an account), Accounts (owns the account identity + KYC), and Trading (owns the cash ledger and positions for that account). No team imports another's repository — each owns its slice of the account's data and exposes it through its own API.
 
 Nothing is shared between domains beyond the HTTP server itself — each domain is a candidate for extraction into its own BFF later. Swagger document (`src/swagger.ts`) covers all domains with team-tagged operations.
 
