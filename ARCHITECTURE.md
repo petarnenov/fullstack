@@ -113,6 +113,8 @@ The ambient declaration in `platform-shell/src/vite-env.d.ts` carries the prop s
 
 ## Authentication
 
+> Visual walk-through: `auth-flow.drawio` (open at [diagrams.net](https://app.diagrams.net) or with the VS Code drawio extension). Page 1 is the login sequence; page 2 is the cookie trust model + threat matrix.
+
 Auth is a Platform Core concern — the shell owns it end-to-end. Neither MFE knows how login works; they only know how to echo a CSRF token on state-changing requests and let the browser carry the session cookie.
 
 ```
