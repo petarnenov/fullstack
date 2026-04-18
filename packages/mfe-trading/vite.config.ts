@@ -19,6 +19,7 @@ export default defineConfig({
   ],
   server: {
     port: 5176,
+    host: true,
     cors: true,
     proxy: {
       "/api": {
@@ -29,6 +30,7 @@ export default defineConfig({
   },
   preview: {
     port: 5176,
+    host: true,
     cors: true,
   },
   build: {

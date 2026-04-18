@@ -25,6 +25,7 @@ All commands run from the repo root.
 - `npm run generate:types` — delegates to `@amp/api`: runs `tsx src/generateSwagger.ts` to refresh `swagger.json`, then `swagger-typescript-api` emits `src/api/generated/` into **all three** frontend packages independently (shell for auth types, both MFEs for their domain types).
 - `npm test` — Jest in `@amp/api` (repository unit tests). No frontend tests in this POC.
 - `npm run build` — `build:api` → `build:billing` → `build:accounts` → `build:trading` → `build:shell`. Order matters: the shell's dev config points at `http://localhost:5175/`, `:5174/` and `:5176/` `remoteEntry.js`, so the remotes must exist before the shell boots.
+- LAN demo mode: set `PUBLIC_HOST=<LAN IP>` in `/.env` (repo root; gitignored — see `.env.example`) and `npm run dev`. The shell's `vite.config.ts` calls `loadEnv(mode, REPO_ROOT, "")` and composes remote URLs from `PUBLIC_HOST` (defaults to `localhost`). Every vite server binds `host: true`. API proxy targets stay `localhost:3000` because the proxy runs on the dev machine, not in the browser. Restart `npm run dev` after editing `.env` — the shell reads it at config time.
 
 ## Load-bearing architectural constraints
 
