@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Микро фронтенди — 30-минутно представяне</title>
+
+  <!-- reveal.js core + theme + highlight.js theme, loaded from CDN -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css" id="reveal-theme" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/monokai.css" />
+
+  <style>
+    :root {
+      --accent: #7a8eff;
+      --team-shell: #8f9cff;
+      --team-billing: #ffb25a;
+      --team-accounts: #5ad5c6;
+      --team-trading: #c084fc;
+      --muted: #9199ac;
+    }
+    .reveal {
+      font-size: 28px;
+    }
+    .reveal h1, .reveal h2, .reveal h3 {
+      text-transform: none;
+      letter-spacing: -0.01em;
+    }
+    .reveal h1 { font-size: 1.9em; }
+    .reveal h2 { font-size: 1.45em; }
+    .reveal h3 { font-size: 1.15em; color: var(--accent); }
+    .reveal pre {
+      font-size: 0.55em;
+      line-height: 1.45;
+      box-shadow: none;
+      width: 100%;
+    }
+    .reveal code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .reveal pre code {
+      padding: 1rem 1.25rem;
+      border-radius: 8px;
+      max-height: 520px;
+    }
+    .reveal :not(pre) > code {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
+    .reveal table {
+      font-size: 0.78em;
+      margin: 0 auto;
+      border-collapse: collapse;
+    }
+    .reveal table th,
+    .reveal table td {
+      padding: 0.45em 0.7em;
+      border-bottom: 1px solid #2e3240;
+      text-align: left;
+    }
+    .reveal table thead th {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .reveal blockquote {
+      width: 85%;
+      margin: 0.8em auto;
+      padding: 0.6em 1.1em;
+      border-left: 3px solid var(--accent);
+      background: rgba(122, 142, 255, 0.08);
+      font-size: 0.9em;
+      font-style: italic;
+      color: #cbd0df;
+    }
+    .reveal .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 0.55em;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border: 1px solid currentColor;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .reveal .badge.shell { color: var(--team-shell); }
+    .reveal .badge.billing { color: var(--team-billing); }
+    .reveal .badge.accounts { color: var(--team-accounts); }
+    .reveal .badge.trading { color: var(--team-trading); }
+    .reveal .muted { color: var(--muted); }
+    .reveal .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2.5em;
+      text-align: left;
+    }
+    .reveal .three-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1.5em;
+      text-align: left;
+    }
+    .reveal .section-header {
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      font-size: 0.55em;
+      font-weight: 600;
+      margin-bottom: 0.8em;
+    }
+    .reveal ul,
+    .reveal ol {
+      display: block;
+      margin-left: 1em;
+    }
+    .reveal ul li,
+    .reveal ol li {
+      margin: 0.4em 0;
+    }
+    .reveal .subtitle {
+      color: var(--muted);
+      font-size: 0.72em;
+      font-weight: 400;
+      margin-top: 0.4em;
+    }
+    .reveal .ascii {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.6em;
+      line-height: 1.3;
+      text-align: left;
+      white-space: pre;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 1em 1.2em;
+      border-radius: 8px;
+      display: inline-block;
+      margin: 0 auto;
+    }
+    .reveal .timing {
+      position: absolute;
+      top: 8px;
+      right: 16px;
+      font-size: 0.4em;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+<div class="reveal">
+  <div class="slides">
+
+    <!-- 0 · Заглавие -->
+    <section>
+      <div class="section-header">Asset Management Platform POC</div>
+      <h1>Микро фронтенди на практика</h1>
+      <p class="subtitle">Какво избрахме, какво пропуснахме и колко ни струваше.</p>
+      <p class="muted" style="font-size: 0.65em; margin-top: 2em;">
+        4 екипа · 4 пакета · Module Federation · ~30 мин + въпроси
+      </p>
+      <aside class="notes">
+        Отвори табове преди старт: http://localhost:5173, репото в редактора, терминал.
+        Задай очаквания: това не е теория, всеки slide се мапва към реален файл в репото.
+      </aside>
+    </section>
+
+    <!-- 1 · Проблемът -->
+    <section>
+      <span class="timing">2 мин</span>
+      <div class="section-header">Организационният проблем</div>
+      <h2>Един SPA спира да скалира при 3-ти екип</h2>
+      <ul>
+        <li>Един екип, една codebase, един CI, един on-call — нормално.</li>
+        <li>Три екипа, които ship-ват един SPA — merge-ите болят, release-ите се coupl-ват, bug в Billing блокира release на Open Account.</li>
+        <li>Микро фронтендите разменят build-time координация за runtime композиция.</li>
+      </ul>
+      <blockquote>
+        Мотивацията е организационна, не техническа. Под 3 екипа → добре структурираният монолит печели.
+      </blockquote>
+      <aside class="notes">
+        Устоявай на импулса да го представиш като perf печалба или migration път. Това е pattern за автономност на екипа.
+      </aside>
+    </section>
+
+    <!-- 2 · Какво е MFE и какво не -->
+    <section>
+      <span class="timing">2 мин</span>
+      <div class="section-header">Проверка на дефиницията</div>
+      <h2>Какво е (и какво не е) микро фронтенд</h2>
+      <table>
+        <thead>
+          <tr><th>ТОВА Е</th><th>ТОВА НЕ Е</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Модел за runtime композиция</td><td>Начин да се избегнат npm зависимости</td></tr>
+          <tr><td>Граница на собственост (екип → пакет)</td><td>Оптимизация за производителност</td></tr>
+          <tr><td>Независим build + deploy на парче</td><td>Извинение за пренаписване</td></tr>
+          <tr><td>Enabler за автономност на екипа</td><td>Безплатно — плащате в координация</td></tr>
+        </tbody>
+      </table>
+      <blockquote>
+        Iframes, Web Components, Module Federation, import-maps — това са механизми. Pattern-ът е автономност на екипа със споделена surface.
+      </blockquote>
+    </section>
+
+    <!-- 3 · Карта на екипи и пакети -->
+    <section>
+      <span class="timing">2 мин</span>
+      <div class="section-header">Географията на територията</div>
+      <h2>Карта на екипи и пакети</h2>
+      <div class="ascii">        Platform Core (shell)
+        /        |        \       \
+       /         |         \       \
+   Billing  Open Account  Trading   + споделено API</div>
+      <table style="margin-top: 1em;">
+        <thead>
+          <tr><th>Екип</th><th>Пакет</th><th>Порт</th><th>Притежава</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="badge shell">Platform Core</span></td><td><code>@amp/platform-shell</code></td><td>5173</td><td>Shell, nav, auth, theme, Dashboard</td></tr>
+          <tr><td><span class="badge billing">Billing</span></td><td><code>@amp/mfe-billing</code></td><td>5175</td><td>Invoices, transactions, balance</td></tr>
+          <tr><td><span class="badge accounts">Open Account</span></td><td><code>@amp/mfe-open-account</code></td><td>5174</td><td>Onboarding wizard, progress</td></tr>
+          <tr><td><span class="badge trading">Trading</span></td><td><code>@amp/mfe-trading</code></td><td>5176</td><td>Orders, cash, positions, portfolio</td></tr>
+          <tr><td class="muted">(сервиз)</td><td><code>@amp/api</code></td><td>3000</td><td>Domain-split Express API</td></tr>
+        </tbody>
+      </table>
+      <p class="subtitle">Именуването кодира границата на екипа: <code>mfe-&lt;domain&gt;</code> + shell + api.</p>
+    </section>
+
+    <!-- 4 · Module Federation -->
+    <section>
+      <span class="timing">2 мин</span>
+      <div class="section-header">Механизмът</div>
+      <h2>Module Federation в една картина</h2>
+      <div class="two-col">
+        <div>
+          <p class="muted" style="font-size: 0.75em;">Всеки remote декларира какво expose-ва:</p>
+<pre><code class="language-ts" data-trim data-noescape>// mfe-trading/vite.config.ts
+federation({
+  name: "mfe_trading",
+  filename: "remoteEntry.js",
+  exposes: {
+    "./TradingPage":    "./src/pages/TradingPage",
+    "./PortfolioWidget":"./src/widgets/PortfolioWidget",
+  },
+  shared: ["react", "react-dom",
+           "@tanstack/react-query"],
+})</code></pre>
+        </div>
+        <div>
+          <p class="muted" style="font-size: 0.75em;">Shell-ът ги консумира по време на runtime:</p>
+<pre><code class="language-ts" data-trim data-noescape>// platform-shell/vite.config.ts
+federation({
+  name: "platform_shell",
+  remotes: {
+    mfe_billing:      "http://…:5175/assets/remoteEntry.js",
+    mfe_open_account: "http://…:5174/assets/remoteEntry.js",
+    mfe_trading:      "http://…:5176/assets/remoteEntry.js",
+  },
+  shared: ["react", "react-dom",
+           "@tanstack/react-query"],
+})</code></pre>
+        </div>
+      </div>
+<pre style="margin-top: 0.8em;"><code class="language-tsx" data-trim>// platform-shell/src/pages/DashboardPage.tsx
+const PortfolioWidget = lazy(() => import("mfe_trading/PortfolioWidget"));</code></pre>
+      <p class="muted" style="font-size: 0.7em;">Това е цялата интеграция — три remote-а, нула споделен изходен код.</p>
+    </section>
+
+    <!-- 5 · Какво пресича границата -->
+    <section>
+      <span class="timing">2 мин</span>
+      <div class="section-header">Контрактът</div>
+      <h2>Какво пресича границата на екипа</h2>
+      <ol>
+        <li><strong>Името на exposed модула</strong> + подписа на default-експорта (компонент).</li>
+        <li><strong>Shared singleton-и</strong> декларирани в <code>shared:</code> списъка на federation.</li>
+        <li><strong>Runtime контракти, които надграждаме</strong> — auth SDK, CSS токени, <code>accountId</code>. Явни, минимални.</li>
+      </ol>
+      <p class="muted" style="font-size: 0.85em; margin-top: 1em;">
+        Без shared npm пакет. Без shared type import-и по време на build. Всеки MFE регенерира собствения си API клиент от един и същ Swagger.
+      </p>
+      <blockquote>
+        Когато Billing прави rebuild, никой друг не rebuild-ва. Когато Billing deploy-ва, никой друг не deploy-ва. Това е цялото обещание.
+      </blockquote>
+    </section>
+
+    <!-- 6 · Shared singleton-и -->
+    <section>
+      <span class="timing">1.5 мин</span>
+      <div class="section-header">Непосредствени</div>
+      <h2>Shared singleton-и</h2>
+<pre><code class="language-ts" data-trim>shared: ["react", "react-dom", "@tanstack/react-query"]</code></pre>
+      <ul>
+        <li><strong>React / React DOM</strong> — два инстанса чупят hooks-овете. Непосредствено.</li>
+        <li><strong>@tanstack/react-query</strong> — един <code>QueryClient</code> през shell + всички MFE-та.
+          <span class="muted">Това е нашият cross-MFE messaging слой.</span></li>
+      </ul>
+      <p>Плати invoice в <code>mfe-billing</code> → invalidate-ва <code>billingKeys.all</code> → <code>OutstandingBalanceWidget</code> на Dashboard-а refetch-ва. Без event bus, без prop drilling.</p>
+      <blockquote>Shared cache е най-евтиният event bus, който някога ще притежавате.</blockquote>
+    </section>
+
+    <!-- 7 · Жив момент -->
+    <section>
+      <span class="timing">1.5 мин</span>
+      <div class="section-header">Отплатата</div>
+      <h2>Dashboard — runtime композиция на екрана</h2>
+      <ul>
+        <li>4 плочки, 4 team badge-а, 3 lazy-load-нати remote-а.</li>
+        <li>Източник: <code>DashboardPage.tsx</code>, три <code>lazy(() =&gt; import(…))</code> реда.</li>
+        <li>Всеки widget чете същия token, пише в същия cache.</li>
+      </ul>
+<pre><code class="language-tsx" data-trim>const OutstandingBalanceWidget = lazy(() => import("mfe_billing/OutstandingBalanceWidget"));
+const OnboardingProgressWidget = lazy(() => import("mfe_open_account/OnboardingProgressWidget"));
+const PortfolioWidget          = lazy(() => import("mfe_trading/PortfolioWidget"));</code></pre>
+      <p class="muted" style="font-size: 0.8em;">На живо: плати invoice → outstanding balance пада. Без wiring.</p>
+      <aside class="notes">
+        Превключи към браузъра за ~30 секунди. Покажи dashboard-а, кликни pay, покажи как widget-ът update-ва.
+      </aside>
+    </section>
+
+    <!-- 7a · Slot композиция -->
+    <section>
+      <span class="timing">1.5 мин</span>
+      <div class="section-header">Втори pattern за композиция</div>
+      <h2>Slot композиция: MFE резервира място за друг екип</h2>
+      <p class="muted" style="font-size: 0.78em;">Dashboard = shell композира нова surface. Тук обратното: собствената страница на екип резервира <code>ReactNode</code> slot; shell го пълни.</p>
+      <div class="two-col">
+        <div>
+<pre><code class="language-tsx" data-trim>// Страницата на Open Account екипа
+interface Props { billingSlot?: ReactNode; }
+export default function OpenAccountPage(
+  { billingSlot }: Props = {}
+) {
+  return (
+    &lt;div&gt;
+      …
+      {billingSlot && &lt;aside&gt;{billingSlot}&lt;/aside&gt;}
+      …
+    &lt;/div&gt;
+  );
+}</code></pre>
+        </div>
+        <div>
+<pre><code class="language-tsx" data-trim>// Platform Core композира в shell-а
+&lt;OpenAccountPage
+  billingSlot={
+    &lt;MfeBoundary label="Outstanding balance"&gt;
+      &lt;OutstandingBalanceWidget /&gt;
+    &lt;/MfeBoundary&gt;
+  }
+/&gt;</code></pre>
+        </div>
+      </div>
+      <ul style="font-size: 0.78em; margin-top: 0.4em;">
+        <li><code>mfe-open-account</code> има <strong>нула</strong> import-а от <code>mfe_billing</code>.</li>
+        <li>Същият контракт: име + подпис на компонента — подписът сега включва <code>ReactNode</code> prop.</li>
+        <li>Същият shared <code>QueryClient</code>: плати invoice на <code>/billing</code> → widget-ът в <code>/accounts</code> refetch-ва.</li>
+        <li>Вложеният <code>MfeBoundary</code> = Billing outage показва widget-размер грешка; onboarding pipeline-ът продължава да работи.</li>
+      </ul>
+      <blockquote>Два pattern-а, същите примитиви. Shell-ът е единственото място, на което е позволено да знае за два екипа едновременно.</blockquote>
+      <aside class="notes">
+        На живо: navigate до /accounts, покажи "Firm billing health" панела; после /billing, плати invoice; после обратно — slot-ът е update-нал.
+        Ако running long, този slide е първият за отрязване — point-ът му е subsumed от slide 7 ако аудиторията е вече убедена.
+      </aside>
+    </section>
+
+    <!-- 8 · Auth -->
+    <section>
+      <span class="timing">2.5 мин</span>
+      <div class="section-header">Където екипите реално се coupl-ват</div>
+      <h2>Auth: shell-owned, runtime SDK контракт</h2>
+      <p class="muted" style="font-size: 0.78em;">Три опции; избрахме #3.</p>
+      <ol>
+        <li>Всеки MFE със собствен login → UX кошмар.</li>
+        <li>Shared auth пакет → връща build coupling.</li>
+        <li><strong>Shell притежава auth, публикува runtime SDK към remote-ите.</strong></li>
+      </ol>
+      <div class="two-col">
+        <div>
+<pre><code class="language-ts" data-trim>// platform-shell/src/auth/platformSdk.ts
+export interface PlatformSdk {
+  getToken(): string | null;
+}
+window.__AMP_PLATFORM__ = {
+  getToken: () => currentToken,
+};</code></pre>
+        </div>
+        <div>
+<pre><code class="language-ts" data-trim>// mfe-trading/src/api/index.ts
+http.interceptors.request.use((config) => {
+  const sdk = window.__AMP_PLATFORM__;
+  const token = sdk?.getToken?.() ?? null;
+  if (token) config.headers.set(
+    "Authorization", `Bearer ${token}`);
+  return config;
+});</code></pre>
+        </div>
+      </div>
+      <p style="font-size: 0.78em; margin-top: 0.6em;">
+        При 401 MFE-то fire-ва <code>amp:auth-expired</code> на <code>window</code>; shell-ът чува → форсира logout.<br/>
+        <strong>Cross-team контракт = един interface shape + едно име на event.</strong> Дублиран inline във всеки MFE.
+      </p>
+      <aside class="notes">
+        Production upgrade: federation-exposed SDK или import-map модул с typed stubs. Window bag-ът учи правилния mental model.
+      </aside>
+    </section>
+
+    <!-- 9 · Theme -->
+    <section>
+      <span class="timing">1.5 мин</span>
+      <div class="section-header">Дизайн система без design-system пакет</div>
+      <h2>Theme: CSS токени като имплицитен контракт</h2>
+<pre><code class="language-css" data-trim>/* Дефинирани от shell-а на &lt;html data-theme="dark"&gt; */
+[data-theme="dark"] {
+  --bg: #0f1117;
+  --text: #e8ebf2;
+  --border: #2e3240;
+  /* … */
+}</code></pre>
+      <ul>
+        <li>CSS модулите на всеки MFE реферират <code>var(--bg)</code>, <code>var(--text)</code> — не знаят кой ги е задал.</li>
+        <li>Shell-ът пише <code>data-theme</code> на <code>&lt;html&gt;</code>; remote-ите наследяват безплатно.</li>
+        <li>Всеки MFE дефинира собствени fallback токени в собствения си <code>index.css</code>, така че standalone работи.</li>
+      </ul>
+      <blockquote>Shell-owned CSS променливите = design-system контракт без design-system пакет. Същата decoupling история.</blockquote>
+    </section>
+
+    <!-- 10 · accountId -->
+    <section>
+      <span class="timing">2 мин</span>
+      <div class="section-header">Cross-domain данни</div>
+      <h2><code>accountId</code> като join key</h2>
+      <div class="ascii">api/src/domains/
+├── auth/       (Platform Core)
+├── billing/    (Billing)      — invoice-и tag-нати по accountId
+├── accounts/   (Open Account) — притежава identity, KYC, product type
+└── trading/    (Trading)      — притежава positions + cash, keyed по accountId</div>
+      <ul style="margin-top: 0.8em;">
+        <li>Купи AAPL на <code>acc_verified_1</code> → Trading debit-ва собствения си <code>Map&lt;accountId, number&gt;</code>.</li>
+        <li>Trading не пита Accounts дали съществува — <strong>lazy-init на $1,000,000</strong>.</li>
+        <li>Invoice-ите на Billing за същия акаунт са незасегнати.</li>
+      </ul>
+      <blockquote>Всеки екип притежава собствения си срез на това какво е "акаунт". Споделената конвенция е един string.</blockquote>
+    </section>
+
+    <!-- 11 · Типове -->
+    <section>
+      <span class="timing">1.5 мин</span>
+      <div class="section-header">Контракти за типове</div>
+      <h2>Един Swagger, четири генерирани клиента</h2>
+      <div class="ascii">api/src/swagger.ts            (source of truth)
+        │
+        ▼   tsx generateSwagger.ts
+api/swagger.json
+        │
+        ├──► platform-shell/src/api/generated/   (само auth)
+        ├──► mfe-billing/src/api/generated/
+        ├──► mfe-open-account/src/api/generated/
+        └──► mfe-trading/src/api/generated/</div>
+      <ul style="margin-top: 1em;">
+        <li>Генерацията се случва <strong>per-пакет</strong> — без shared types пакет.</li>
+        <li>Trading чупи своя endpoint → само Trading не typecheck-ва.</li>
+        <li>Всеки MFE wrap-ва генерирания клиент в <code>api/index.ts</code> + query-key factory.</li>
+      </ul>
+      <blockquote>Контрактите пътуват чрез регенерация, не чрез import-и. Това е дисциплината.</blockquote>
+    </section>
+
+    <!-- 12 · CSS изолация -->
+    <section>
+      <span class="timing">1 мин</span>
+      <div class="section-header">Остър ръб</div>
+      <h2>CSS изолация в remote-ите</h2>
+      <p>Federation плъгинът на Vite <strong>не</strong> зарежда CSS файлове от remote-и. Без намеса widget-ите mount-ват нестилизирани в продукция.</p>
+<pre><code class="language-ts" data-trim>// vite.config.ts на всеки MFE
+plugins: [
+  cssInjectedByJsPlugin(),  // inlin-ва CSS в JS bundle-а
+  federation({ … }),
+]</code></pre>
+      <ul>
+        <li>Плюс <code>isolation: isolate</code> на root контейнера на всеки MFE, така че стиловете да останат scope-нати.</li>
+        <li>Плюс CSS Modules, така че имената на клас са hash-нати.</li>
+      </ul>
+      <blockquote>Пропуснеш ли това, federated страниците ти рендират нестилизирани в продукция. Тествай composed режима рано.</blockquote>
+    </section>
+
+    <!-- 13 · Dev режими -->
+    <section>
+      <span class="timing">1.5 мин</span>
+      <div class="section-header">Как екипът реално работи</div>
+      <h2>Три dev режима на MFE</h2>
+      <ol>
+        <li><strong>Standalone с HMR</strong> — <code>npm run dev:trading:standalone</code>. Vite dev, собствен <code>QueryClient</code>, собствен Router. Team-local итерация, нула външни зависимости.</li>
+        <li><strong>Built preview</strong> — <code>npm run dev:trading</code>. <code>vite preview</code> сервира <code>dist/</code>. Нужно, защото shell-ът консумира <code>remoteEntry.js</code>, който съществува само след <code>vite build</code>.</li>
+        <li><strong>Консумиран от shell-а</strong> — <code>lazy(() =&gt; import("mfe_trading/…"))</code> на shell-а взима remote-а; MFE-то ползва provider-ите на shell-а.</li>
+      </ol>
+      <blockquote>Standalone е как държиш екипа unblocked. Никога не ти трябват другите три процеса, за да оправиш bug.</blockquote>
+    </section>
+
+    <!-- 14 · Deploy независимост -->
+    <section>
+      <span class="timing">1.5 мин</span>
+      <div class="section-header">Организационната печалба</div>
+      <h2>Deploy независимост (blast radius)</h2>
+      <ul>
+        <li>Убий процеса <code>mfe-billing</code> → widget показва error state през <code>&lt;MfeBoundary&gt;</code>. Всичко друго работи. Restart → widget се връща.</li>
+        <li><strong>Три различни CI pipeline-а, три различни release cadence-а.</strong></li>
+        <li>Лош deploy на Billing не чупи Trading.</li>
+        <li>Всеки <code>remoteEntry.js</code> може да живее на собствен CDN със собствена версия.</li>
+      </ul>
+      <blockquote>Това е най-голямата единична организационна печалба. По-малък blast radius → повече deploy-и → по-бързи екипи.</blockquote>
+      <aside class="notes">
+        Жив момент: спри процеса mfe-billing в терминала, refresh на dashboard-а, покажи error boundary-то.
+      </aside>
+    </section>
+
+    <!-- 15 · Shell притежава -->
+    <section>
+      <span class="timing">1 мин</span>
+      <div class="section-header">Чиста граница</div>
+      <h2>Shell притежава platform concerns</h2>
+      <div class="two-col">
+        <div>
+          <h3>Shell прави</h3>
+          <ul style="font-size: 0.85em;">
+            <li>Routing &amp; навигация</li>
+            <li>Auth (login, session, <code>ProtectedRoute</code>)</li>
+            <li>Theme (<code>data-theme</code>, токени, toggle)</li>
+            <li>Layout (sidebar, user card, logout)</li>
+            <li>Error boundaries за remote-и</li>
+            <li>Platform SDK на <code>window</code></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Shell НЕ прави</h3>
+          <ul style="font-size: 0.85em;">
+            <li>Fetch на Billing / Accounts / Trading данни</li>
+            <li>Знае вътрешни компоненти на MFE</li>
+            <li>Знае какво е position или invoice</li>
+            <li>Притежава team-specific бизнес логика</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 16 · Компромиси -->
+    <section>
+      <span class="timing">2 мин</span>
+      <div class="section-header">Честният slide</div>
+      <h2>Компромиси</h2>
+      <div class="two-col">
+        <div>
+          <h3>Печелите</h3>
+          <ul style="font-size: 0.85em;">
+            <li>Автономност на екипа (dev, build, deploy, on-call)</li>
+            <li>Малък blast radius при грешки</li>
+            <li>Независим tech избор в рамките на shared-singleton-ите</li>
+            <li>Паралелна скорост: 3 екипа ship-ват едновременно</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Плащате</h3>
+          <ul style="font-size: 0.85em;">
+            <li>Един React през remote-ите — upgrade-ите координират</li>
+            <li>CSS изолацията е ръчна</li>
+            <li>Runtime композиция → по-бавен first paint</li>
+            <li>Дисциплина за контракти нужна; хора, не инструменти, enforce-ват</li>
+            <li>Shell-ът е ново нещо за владеене</li>
+            <li>Debugging пресича 3 репа</li>
+          </ul>
+        </div>
+      </div>
+      <blockquote>Не е безплатно. Ако отговорът на "колко екипа ship-ват тук" е 1-2, добре модуляризиран монолит го бие.</blockquote>
+    </section>
+
+    <!-- 17 · Production upgrade-и -->
+    <section>
+      <span class="timing">1.5 мин</span>
+      <div class="section-header">Какво пропуснахме</div>
+      <h2>Production upgrade-и</h2>
+      <table>
+        <thead>
+          <tr><th>POC</th><th>Production</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Window bag за auth SDK</td><td>Federation-exposed SDK или import-map модул</td></tr>
+          <tr><td>Opaque tokens в <code>localStorage</code></td><td>JWT в httpOnly cookies + refresh + OIDC IdP</td></tr>
+          <tr><td>Hardcoded remote URL-и</td><td>Build-time injection или runtime manifest + versioned URL-и</td></tr>
+          <tr><td>In-memory repositories</td><td>Реални DB-та per домейн (или shared DB, schema-separated)</td></tr>
+          <tr><td>Няма shared дизайн система</td><td><code>@company/tokens</code> пакет с CSS променливи</td></tr>
+          <tr><td>Няма event bus</td><td>Shared cache покрива ~80%; typed events за останалото</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 18 · Кога НЕ -->
+    <section>
+      <span class="timing">1 мин</span>
+      <div class="section-header">Anti-препоръка</div>
+      <h2>Кога НЕ да се прави това</h2>
+      <ul>
+        <li>Под ~3 ship-ващи екипа.</li>
+        <li>Една кохерентна продуктова surface, която се променя като цяло.</li>
+        <li>Ops екипът не може да работи 3 независими CI/CD pipeline-а.</li>
+        <li>Не можеш да се ангажираш с координация на версиите на React / core lib-и.</li>
+        <li>Performance бюджетът не може да абсорбира цената на runtime-композицията.</li>
+      </ul>
+      <blockquote>
+        Добре структуриран монолит с ясни feature folder-и често е правилният отговор. Не микро-фронтенд-ирай пътя си към distributed монолит.
+      </blockquote>
+    </section>
+
+    <!-- 19 · Recap + Q&A -->
+    <section>
+      <span class="timing">1 мин</span>
+      <div class="section-header">Рекап</div>
+      <h2>Какво покрихме</h2>
+      <ol style="font-size: 0.85em;">
+        <li>Граница екип → пакет (<code>mfe-&lt;domain&gt;</code>).</li>
+        <li>Module Federation: remote-и + exposed модули + shared singleton-и.</li>
+        <li>Cross-team контракт = име + подпис. Нищо друго.</li>
+        <li>Два composition pattern-а: orchestration (Dashboard) + slot композиция (<code>OpenAccountPage.billingSlot</code>).</li>
+        <li>Cross-cutting concerns през runtime контракти: auth (window SDK), theme (CSS vars), данни (<code>accountId</code>).</li>
+        <li>Per-пакет type generation — decoupled контракти.</li>
+        <li>Три dev режима, три deploy режима.</li>
+        <li>Компромиси: автономност ↔ координация.</li>
+      </ol>
+      <p class="muted" style="font-size: 0.75em; margin-top: 1em;">
+        По-дълбок read: <code>ARCHITECTURE.md</code>, <code>DEMO_SCRIPT.md</code>, <code>CLAUDE.md</code>.
+      </p>
+    </section>
+
+    <section>
+      <h1>Въпроси?</h1>
+      <p class="subtitle">Изберете който slide и ще задълбая.</p>
+      <aside class="notes">
+        Обичайна подготовка:
+        • Защо MF vs iframes? Shared React, shared cache, единична SPA навигация, без sandbox overhead.
+        • Защо не Nx с build-time import-и? Искаме runtime независимост; Nx все още coupl-ва build-овете.
+        • Testing? Всеки MFE тества expose-натите си компоненти; shell-ът има integration тестове, които mock-ват remote-ите.
+        • Versioning? Remote URL-ите могат да бъдат versioned (/v2/remoteEntry.js); manifest-ите решават.
+      </aside>
+    </section>
+
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/notes/notes.js"></script>
+<script>
+  Reveal.initialize({
+    plugins: [RevealHighlight, RevealNotes],
+    hash: true,
+    slideNumber: "c/t",
+    transition: "fade",
+    transitionSpeed: "fast",
+    controlsTutorial: false,
+    pdfSeparateFragments: false,
+    width: 1280,
+    height: 800,
+    margin: 0.06,
+  });
+</script>
+</body>
+</html>
