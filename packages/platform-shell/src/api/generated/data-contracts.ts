@@ -79,9 +79,9 @@ export interface LoginRequest {
   password: string;
 }
 
-export interface LoginResponse {
-  token: string;
+export interface SessionResponse {
   user: AuthenticatedUser;
+  csrfToken: string;
 }
 
 export interface DemoCredential {
@@ -238,7 +238,9 @@ export interface DepositRequest {
   amount: number;
 }
 
-export type AuthLoginCreateData = LoginResponse;
+export type AuthLoginCreateData = SessionResponse;
+
+export type AuthRefreshCreateData = SessionResponse;
 
 export type AuthLogoutCreateData = any;
 

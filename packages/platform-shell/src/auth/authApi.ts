@@ -3,33 +3,41 @@ import type {
   AuthenticatedUser,
   DemoCredential,
   LoginRequest,
-  LoginResponse,
+  SessionResponse,
 } from "../api/generated/data-contracts";
 
-export type { AuthenticatedUser, DemoCredential, LoginRequest, LoginResponse };
+export type { AuthenticatedUser, DemoCredential, LoginRequest, SessionResponse };
 
+const CSRF_HEADER = "X-CSRF-Token";
+
+// The axios client talks same-origin via the vite proxy, so cookies attach
+// automatically. withCredentials is still needed for any direct cross-origin
+// call (e.g. LAN demo where the API host differs from the shell host).
 const http = axios.create({
   baseURL: "/api/auth",
   headers: { "Content-Type": "application/json" },
+  withCredentials: true,
 });
 
 export const authApi = {
   login: (body: LoginRequest) =>
-    http.post<LoginResponse>("/login", body).then((r) => r.data),
+    http.post<SessionResponse>("/login", body).then((r) => r.data),
 
-  logout: (token: string) =>
+  refresh: (csrfToken: string) =>
+    http
+      .post<SessionResponse>("/refresh", undefined, {
+        headers: { [CSRF_HEADER]: csrfToken },
+      })
+      .then((r) => r.data),
+
+  logout: (csrfToken: string) =>
     http
       .post<void>("/logout", undefined, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { [CSRF_HEADER]: csrfToken },
       })
       .then(() => undefined),
 
-  me: (token: string) =>
-    http
-      .get<AuthenticatedUser>("/me", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((r) => r.data),
+  me: () => http.get<AuthenticatedUser>("/me").then((r) => r.data),
 
   demoCredentials: () =>
     http.get<DemoCredential[]>("/demo-credentials").then((r) => r.data),

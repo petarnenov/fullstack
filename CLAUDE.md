@@ -50,7 +50,7 @@ Both MFE vite configs use `vite-plugin-css-injected-by-js`. Vite's federation pl
 Data-fetching lives in the MFE whose team owns the data. The shell only calls `/api/auth/*` (its own domain, Platform Core). For billing or accounts data, a widget from the owning team is composed into the shell; the shell does not reach past the contract.
 
 ### 6. Auth is shell-owned; MFEs read the session via a runtime contract
-The shell writes a tiny SDK to `window.__AMP_PLATFORM__ = { getToken() }` when `AuthProvider` mounts. Each MFE's axios instance reads from it in a request interceptor and attaches `Authorization: Bearer <token>`. On a 401 response, the MFE dispatches `CustomEvent("amp:auth-expired")` on `window`; the shell listens and forces a logout + redirect. **Never** import auth code across packages — duplicate the `PlatformSdk` interface inline in each MFE (see the comment in `src/api/index.ts`). Protected route gating lives only in the shell's `<ProtectedRoute>` wrapper.
+The session lives in three cookies set by the API on `POST /api/auth/login`: `amp_access_token` (httpOnly, 15-min TTL), `amp_refresh_token` (httpOnly, SameSite=Strict, path=/api/auth, 7-day TTL), and `amp_csrf_token` (non-httpOnly so JS can read it, SameSite=Strict). Access + refresh tokens are invisible to JS — the browser attaches them automatically because every `/api/*` call is same-origin via vite's proxy. The shell publishes `window.__AMP_PLATFORM__ = { user, csrfToken, logout }` when `AuthProvider` mounts. MFE axios instances set `withCredentials: true` and, on state-changing methods (non-GET/HEAD/OPTIONS), echo the CSRF token as `X-CSRF-Token` (double-submit cookie pattern). On 401 the MFE dispatches `CustomEvent("amp:auth-expired")` on `window`; the shell catches it, attempts a silent `/api/auth/refresh` (rotates access + refresh + CSRF), and forces a logout if that fails. Refresh-token reuse detection kills the whole session family. **Never** import auth code across packages — duplicate the `PlatformSdk` interface inline in each MFE (see the comment in `src/api/index.ts`). Protected route gating lives only in the shell's `<ProtectedRoute>` wrapper.
 
 ## Per-package gotchas
 
@@ -82,7 +82,7 @@ Don't add these without checking first:
 - No shared-ui package. Design tokens are duplicated across packages' CSS.
 - No event bus. Cross-MFE communication goes through the shared `QueryClient` (cache invalidation) or the backend.
 - No SQLite / persistence. Previously there was a repository pattern with memory + sqlite + test implementations — it was removed as unnecessary complexity for a demo.
-- No real IdP. `authRepository` is in-memory with hardcoded demo users and opaque tokens. Swap for OIDC + httpOnly cookies in prod. The `/api/auth/demo-credentials` endpoint is demo-only and must not ship.
+- No external IdP. `authRepository` is in-memory with demo users hashed at boot via argon2id; sessions are opaque httpOnly cookies with refresh-token rotation, CSRF double-submit, and rate limiting on `/login` + `/refresh`. Swap for OIDC if you need SSO or B2B federation. The `/api/auth/demo-credentials` endpoint is gated behind `NODE_ENV !== "production"`.
 - No frontend tests. API tests exist; UI testing would be added by the consuming team.
 
 ## Repo notes

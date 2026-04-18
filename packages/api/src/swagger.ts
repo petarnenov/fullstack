@@ -13,11 +13,12 @@ export const swaggerDocument = {
     { name: "Accounts", description: "Owned by Open Account team (requires auth)" },
     { name: "Trading", description: "Owned by Trading team (requires auth)" },
   ],
-  security: [{ BearerAuth: [] }],
+  security: [{ cookieAuth: [] }],
   paths: {
     "/api/auth/login": {
       post: {
-        summary: "Exchange credentials for a session token",
+        summary:
+          "Exchange credentials for a session. Sets httpOnly access+refresh cookies and a readable csrf cookie; returns the user and csrfToken to echo on state-changing requests.",
         tags: ["Auth"],
         security: [],
         requestBody: {
@@ -33,24 +34,50 @@ export const swaggerDocument = {
             description: "Session",
             content: {
               "application/json": {
-                schema: { $ref: "#/components/schemas/LoginResponse" },
+                schema: { $ref: "#/components/schemas/SessionResponse" },
               },
             },
           },
           "401": { description: "Invalid credentials" },
+          "429": { description: "Rate limited" },
+        },
+      },
+    },
+    "/api/auth/refresh": {
+      post: {
+        summary:
+          "Rotate the refresh token and issue a fresh access token + csrf. Requires X-CSRF-Token header matching csrf cookie.",
+        tags: ["Auth"],
+        security: [],
+        responses: {
+          "200": {
+            description: "New session",
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/SessionResponse" },
+              },
+            },
+          },
+          "401": { description: "Missing or invalid refresh token" },
+          "403": { description: "CSRF token mismatch" },
+          "429": { description: "Rate limited" },
         },
       },
     },
     "/api/auth/logout": {
       post: {
-        summary: "Revoke the current session",
+        summary:
+          "Revoke the current session family and clear session cookies. Requires X-CSRF-Token.",
         tags: ["Auth"],
-        responses: { "204": { description: "Logged out" } },
+        responses: {
+          "204": { description: "Logged out" },
+          "403": { description: "CSRF token mismatch" },
+        },
       },
     },
     "/api/auth/me": {
       get: {
-        summary: "Get the current user (token validation)",
+        summary: "Get the current user (validates the access cookie)",
         tags: ["Auth"],
         responses: {
           "200": {
@@ -67,7 +94,8 @@ export const swaggerDocument = {
     },
     "/api/auth/demo-credentials": {
       get: {
-        summary: "Demo-only: list hardcoded credentials for the login page",
+        summary:
+          "Demo-only (NODE_ENV !== production): list hardcoded credentials for the login page",
         tags: ["Auth"],
         security: [],
         responses: {
@@ -84,6 +112,7 @@ export const swaggerDocument = {
               },
             },
           },
+          "404": { description: "Disabled in production" },
         },
       },
     },
@@ -521,9 +550,10 @@ export const swaggerDocument = {
   },
   components: {
     securitySchemes: {
-      BearerAuth: {
-        type: "http",
-        scheme: "bearer",
+      cookieAuth: {
+        type: "apiKey",
+        in: "cookie",
+        name: "amp_access_token",
       },
     },
     schemas: {
@@ -547,12 +577,12 @@ export const swaggerDocument = {
           password: { type: "string" },
         },
       },
-      LoginResponse: {
+      SessionResponse: {
         type: "object",
-        required: ["token", "user"],
+        required: ["user", "csrfToken"],
         properties: {
-          token: { type: "string" },
           user: { $ref: "#/components/schemas/AuthenticatedUser" },
+          csrfToken: { type: "string" },
         },
       },
       DemoCredential: {

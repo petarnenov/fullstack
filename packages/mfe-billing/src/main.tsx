@@ -11,17 +11,21 @@ const queryClient = new QueryClient({
 });
 
 // Standalone-only: the shell normally owns auth and publishes
-// window.__AMP_PLATFORM__. In `vite dev` we fake it with a demo login so the
-// axios interceptor can attach a Bearer token to /api/billing/* calls.
+// window.__AMP_PLATFORM__. In `vite dev` we fake it by doing a real demo
+// login — the API sets httpOnly cookies automatically; we only need to
+// stash the CSRF token so the axios interceptor can echo it as the
+// X-CSRF-Token header on state-changing requests.
 async function installStandaloneAuth() {
   const res = await fetch("/api/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({ email: "admin@amp.demo", password: "admin123" }),
   });
-  const { token } = (await res.json()) as { token: string };
-  (window as unknown as { __AMP_PLATFORM__: { getToken: () => string } }).__AMP_PLATFORM__ =
-    { getToken: () => token };
+  const { csrfToken } = (await res.json()) as { csrfToken: string };
+  (window as unknown as {
+    __AMP_PLATFORM__: { csrfToken: string };
+  }).__AMP_PLATFORM__ = { csrfToken };
 }
 
 async function bootstrap() {

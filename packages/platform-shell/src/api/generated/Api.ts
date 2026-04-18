@@ -23,6 +23,7 @@ import {
   AuthLoginCreateData,
   AuthLogoutCreateData,
   AuthMeListData,
+  AuthRefreshCreateData,
   BillingInvoicesDetailData,
   BillingInvoicesDetailParams,
   BillingInvoicesListData,
@@ -59,7 +60,7 @@ export class Api<
    *
    * @tags Auth
    * @name AuthLoginCreate
-   * @summary Exchange credentials for a session token
+   * @summary Exchange credentials for a session. Sets httpOnly access+refresh cookies and a readable csrf cookie; returns the user and csrfToken to echo on state-changing requests.
    * @request POST:/api/auth/login
    */
   authLoginCreate = (data: LoginRequest, params: RequestParams = {}) =>
@@ -75,13 +76,28 @@ export class Api<
    * No description
    *
    * @tags Auth
+   * @name AuthRefreshCreate
+   * @summary Rotate the refresh token and issue a fresh access token + csrf. Requires X-CSRF-Token header matching csrf cookie.
+   * @request POST:/api/auth/refresh
+   */
+  authRefreshCreate = (params: RequestParams = {}) =>
+    this.request<AuthRefreshCreateData, void>({
+      path: `/api/auth/refresh`,
+      method: "POST",
+      format: "json",
+      ...params,
+    });
+  /**
+   * No description
+   *
+   * @tags Auth
    * @name AuthLogoutCreate
-   * @summary Revoke the current session
+   * @summary Revoke the current session family and clear session cookies. Requires X-CSRF-Token.
    * @request POST:/api/auth/logout
    * @secure
    */
   authLogoutCreate = (params: RequestParams = {}) =>
-    this.request<AuthLogoutCreateData, any>({
+    this.request<AuthLogoutCreateData, void>({
       path: `/api/auth/logout`,
       method: "POST",
       secure: true,
@@ -92,7 +108,7 @@ export class Api<
    *
    * @tags Auth
    * @name AuthMeList
-   * @summary Get the current user (token validation)
+   * @summary Get the current user (validates the access cookie)
    * @request GET:/api/auth/me
    * @secure
    */
@@ -109,11 +125,11 @@ export class Api<
    *
    * @tags Auth
    * @name AuthDemoCredentialsList
-   * @summary Demo-only: list hardcoded credentials for the login page
+   * @summary Demo-only (NODE_ENV !== production): list hardcoded credentials for the login page
    * @request GET:/api/auth/demo-credentials
    */
   authDemoCredentialsList = (params: RequestParams = {}) =>
-    this.request<AuthDemoCredentialsListData, any>({
+    this.request<AuthDemoCredentialsListData, void>({
       path: `/api/auth/demo-credentials`,
       method: "GET",
       format: "json",

@@ -15,12 +15,15 @@ export const LoginRequestSchema = z.object({
   password: z.string().min(1),
 });
 
-export const LoginResponseSchema = z.object({
-  token: z.string(),
+// Session tokens are delivered via httpOnly cookies. The JSON body only
+// surfaces the user and the CSRF token the client must echo on state-changing
+// requests (double-submit cookie pattern).
+export const SessionResponseSchema = z.object({
   user: AuthenticatedUserSchema,
+  csrfToken: z.string(),
 });
 
 export type UserRole = z.infer<typeof UserRoleEnum>;
 export type AuthenticatedUser = z.infer<typeof AuthenticatedUserSchema>;
 export type LoginRequest = z.infer<typeof LoginRequestSchema>;
-export type LoginResponse = z.infer<typeof LoginResponseSchema>;
+export type SessionResponse = z.infer<typeof SessionResponseSchema>;
