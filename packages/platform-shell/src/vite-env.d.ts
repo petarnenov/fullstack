@@ -16,7 +16,10 @@ declare module "mfe_billing/OutstandingBalanceWidget" {
 }
 
 declare module "mfe_open_account/OpenAccountPage" {
-  const OpenAccountPage: React.ComponentType;
+  interface OpenAccountPageProps {
+    billingSlot?: React.ReactNode;
+  }
+  const OpenAccountPage: React.ComponentType<OpenAccountPageProps>;
   export default OpenAccountPage;
 }
 

@@ -11,6 +11,9 @@ const BillingPage = lazy(() => import("mfe_billing/BillingPage"));
 const OpenAccountPage = lazy(
   () => import("mfe_open_account/OpenAccountPage"),
 );
+const OutstandingBalanceWidget = lazy(
+  () => import("mfe_billing/OutstandingBalanceWidget"),
+);
 const TradingPage = lazy(() => import("mfe_trading/TradingPage"));
 
 export default function App() {
@@ -36,7 +39,16 @@ export default function App() {
                   path="/accounts/*"
                   element={
                     <MfeBoundary label="Open Account MFE" fallbackHeight={400}>
-                      <OpenAccountPage />
+                      <OpenAccountPage
+                        billingSlot={
+                          <MfeBoundary
+                            label="Outstanding balance widget"
+                            fallbackHeight={140}
+                          >
+                            <OutstandingBalanceWidget />
+                          </MfeBoundary>
+                        }
+                      />
                     </MfeBoundary>
                   }
                 />

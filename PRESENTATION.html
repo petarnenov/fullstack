@@ -321,6 +321,52 @@ const PortfolioWidget          = lazy(() => import("mfe_trading/PortfolioWidget"
       </aside>
     </section>
 
+    <!-- 7a · Slot composition -->
+    <section>
+      <span class="timing">1.5 min</span>
+      <div class="section-header">Second composition pattern</div>
+      <h2>Slot composition: an MFE reserves space for another team</h2>
+      <p class="muted" style="font-size: 0.78em;">Dashboard = shell composes a new surface. Here the inverse: a team's own page reserves a <code>ReactNode</code> slot; shell fills it.</p>
+      <div class="two-col">
+        <div>
+<pre><code class="language-tsx" data-trim>// Open Account team's page
+interface Props { billingSlot?: ReactNode; }
+export default function OpenAccountPage(
+  { billingSlot }: Props = {}
+) {
+  return (
+    &lt;div&gt;
+      …
+      {billingSlot && &lt;aside&gt;{billingSlot}&lt;/aside&gt;}
+      …
+    &lt;/div&gt;
+  );
+}</code></pre>
+        </div>
+        <div>
+<pre><code class="language-tsx" data-trim>// Platform Core composes in the shell
+&lt;OpenAccountPage
+  billingSlot={
+    &lt;MfeBoundary label="Outstanding balance"&gt;
+      &lt;OutstandingBalanceWidget /&gt;
+    &lt;/MfeBoundary&gt;
+  }
+/&gt;</code></pre>
+        </div>
+      </div>
+      <ul style="font-size: 0.78em; margin-top: 0.4em;">
+        <li><code>mfe-open-account</code> has <strong>zero</strong> imports from <code>mfe_billing</code>.</li>
+        <li>Same contract: name + component signature — signature now includes a <code>ReactNode</code> prop.</li>
+        <li>Same shared <code>QueryClient</code>: pay an invoice on <code>/billing</code> → widget inside <code>/accounts</code> refetches.</li>
+        <li>Inner <code>MfeBoundary</code> = Billing outage shows a widget-sized error; onboarding pipeline keeps running.</li>
+      </ul>
+      <blockquote>Two patterns, same primitives. The shell is the only place allowed to know about two teams at once.</blockquote>
+      <aside class="notes">
+        Live: navigate to /accounts, point at the "Firm billing health" panel; then /billing, pay an invoice; then back — the slot has updated.
+        If running long, this slide is the first cut — its point is subsumed by slide 7 if the audience is already convinced.
+      </aside>
+    </section>
+
     <!-- 8 · Auth -->
     <section>
       <span class="timing">2.5 min</span>
@@ -575,6 +621,7 @@ plugins: [
         <li>Team → package boundary (<code>mfe-&lt;domain&gt;</code>).</li>
         <li>Module Federation: remotes + exposed modules + shared singletons.</li>
         <li>Cross-team contract = name + signature. Nothing else.</li>
+        <li>Two composition patterns: orchestration (Dashboard) + slot composition (<code>OpenAccountPage.billingSlot</code>).</li>
         <li>Cross-cutting concerns via runtime contracts: auth (window SDK), theme (CSS vars), data (<code>accountId</code>).</li>
         <li>Type generation per package — decoupled contracts.</li>
         <li>Three dev modes, three deploy modes.</li>

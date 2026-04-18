@@ -156,6 +156,44 @@ Open http://localhost:5173 → Dashboard.
 
 ---
 
+## 7a · Second pattern: slot composition (1.5 min)
+
+Dashboard = shell composes a *new* surface. Now the inverse: a team's own page reserves a slot for someone else's widget.
+
+```tsx
+// mfe-open-account/src/pages/OpenAccountPage.tsx  (Open Account team)
+interface OpenAccountPageProps { billingSlot?: ReactNode; }
+export default function OpenAccountPage({ billingSlot }: OpenAccountPageProps = {}) {
+  return (
+    <div>
+      …
+      {billingSlot && <aside>{billingSlot}</aside>}
+      …
+    </div>
+  );
+}
+```
+
+```tsx
+// platform-shell/src/App.tsx  (Platform Core composes)
+<OpenAccountPage
+  billingSlot={
+    <MfeBoundary label="Outstanding balance widget">
+      <OutstandingBalanceWidget />
+    </MfeBoundary>
+  }
+/>
+```
+
+- Open Account package has **zero** imports from `mfe_billing`.
+- The contract is still "name + component signature" — the signature just includes a `ReactNode` prop.
+- Same shared `QueryClient`: pay an invoice on `/billing`, the widget inside `/accounts` updates instantly.
+- Nested `MfeBoundary` around the slot means a Billing outage shows a widget-sized error; the onboarding pipeline keeps running.
+
+> "Two patterns, same primitives. The shell is the only place allowed to know about two teams at once."
+
+---
+
 ## 8 · Auth — where teams really couple (2.5 min)
 
 Auth is the first place the MFE pattern leaks. Options:
@@ -376,10 +414,11 @@ What we covered:
 1. Team → package boundary (`mfe-<domain>` convention)
 2. Module Federation: remotes + exposed modules + shared singletons
 3. The cross-team contract = exposed name + component signature. Nothing else.
-4. Cross-cutting concerns via runtime contracts: auth (window SDK), theme (CSS variables), data (accountId as join key).
-5. Type generation per package — decoupled contracts.
-6. Three dev modes, three deploy modes.
-7. Trade-offs: autonomy vs. coordination cost.
+4. Two composition patterns: orchestration (Dashboard) + slot composition (`OpenAccountPage.billingSlot`).
+5. Cross-cutting concerns via runtime contracts: auth (window SDK), theme (CSS variables), data (accountId as join key).
+6. Type generation per package — decoupled contracts.
+7. Three dev modes, three deploy modes.
+8. Trade-offs: autonomy vs. coordination cost.
 
 **Repo map for deeper reading:**
 
@@ -401,6 +440,8 @@ What we covered:
 | Shell federation config        | 4      | `packages/platform-shell/vite.config.ts`                        |
 | MFE exposes                    | 4      | `packages/mfe-trading/vite.config.ts`                           |
 | Lazy import                    | 4, 7   | `packages/platform-shell/src/pages/DashboardPage.tsx`           |
+| Slot composition (MFE side)    | 7a     | `packages/mfe-open-account/src/pages/OpenAccountPage.tsx`       |
+| Slot composition (shell side)  | 7a     | `packages/platform-shell/src/App.tsx` (`/accounts` route)       |
 | Shared-cache invalidation      | 6      | `packages/mfe-billing/src/components/InvoicesTable.tsx`         |
 | Auth SDK contract              | 8      | `packages/platform-shell/src/auth/platformSdk.ts`               |
 | MFE auth interceptor           | 8      | `packages/mfe-trading/src/api/index.ts`                         |
@@ -410,4 +451,4 @@ What we covered:
 | CSS injection plugin           | 12     | `packages/mfe-trading/vite.config.ts`                           |
 | MfeBoundary error state        | 14     | `packages/platform-shell/src/components/MfeBoundary.tsx`        |
 
-**Timing pad:** if running short, cut slides 12 (CSS) and 15 (shell owns). If running long, skip 13 (dev modes) — it overlaps with 14.
+**Timing pad:** if running short, cut slides 12 (CSS) and 15 (shell owns). If running long, skip 7a (slot composition) — its point is subsumed by 7 if the audience is already convinced — or 13 (dev modes), which overlaps with 14.

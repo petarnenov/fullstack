@@ -1,10 +1,15 @@
+import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { accountsApi, accountsKeys } from "../api";
 import AccountList from "../components/AccountList";
 import OnboardingWizard from "../components/OnboardingWizard";
 import styles from "./OpenAccountPage.module.css";
 
-export default function OpenAccountPage() {
+interface OpenAccountPageProps {
+  billingSlot?: ReactNode;
+}
+
+export default function OpenAccountPage({ billingSlot }: OpenAccountPageProps = {}) {
   const {
     data: accounts = [],
     isLoading,
@@ -26,6 +31,16 @@ export default function OpenAccountPage() {
         </div>
         <span className={styles.ownerTag}>mfe-open-account · port 5174</span>
       </header>
+
+      {billingSlot && (
+        <aside className={styles.contextAside} aria-label="Firm billing health">
+          <div className={styles.contextHead}>
+            <span className={styles.contextTitle}>Firm billing health</span>
+            <span className={styles.contextSource}>composed · Billing team</span>
+          </div>
+          <div className={styles.contextBody}>{billingSlot}</div>
+        </aside>
+      )}
 
       <section className={styles.grid}>
         <div className={styles.column}>

@@ -17,7 +17,8 @@ A micro-frontend POC for a realistic platform. Three product teams (Billing, Ope
 │  │   • Auth (owns login, session, ProtectedRoute)               │   │
 │  │   • Dashboard  ── composes 3 widgets from 3 MFEs             │   │
 │  │   • /billing   ── lazy-loads remote BillingPage              │   │
-│  │   • /accounts  ── lazy-loads remote OpenAccountPage          │   │
+│  │   • /accounts  ── OpenAccountPage + injects Billing widget   │   │
+│  │                    into its billingSlot (slot composition)   │   │
 │  │   • /trading   ── lazy-loads remote TradingPage              │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │          │                  │                    │                  │
@@ -50,18 +51,64 @@ A micro-frontend POC for a realistic platform. Three product teams (Billing, Ope
 
 Each remote declares what it exposes in its `vite.config.ts`. The host pulls them by name at runtime.
 
-| Remote             | Exposed module                 | Consumer in shell                  |
-| ------------------ | ------------------------------ | ---------------------------------- |
-| `mfe_billing`      | `./BillingPage`                | `/billing/*` route                 |
-| `mfe_billing`      | `./OutstandingBalanceWidget`   | Dashboard tile                     |
-| `mfe_open_account` | `./OpenAccountPage`            | `/accounts/*` route                |
-| `mfe_open_account` | `./OnboardingProgressWidget`   | Dashboard tile                     |
-| `mfe_trading`      | `./TradingPage`                | `/trading/*` route                 |
-| `mfe_trading`      | `./PortfolioWidget`            | Dashboard tile                     |
+| Remote             | Exposed module                 | Component signature             | Consumer in shell                             |
+| ------------------ | ------------------------------ | ------------------------------- | --------------------------------------------- |
+| `mfe_billing`      | `./BillingPage`                | `() => JSX`                     | `/billing/*` route                            |
+| `mfe_billing`      | `./OutstandingBalanceWidget`   | `() => JSX`                     | Dashboard tile + Open Account slot            |
+| `mfe_open_account` | `./OpenAccountPage`            | `({ billingSlot? }) => JSX`     | `/accounts/*` route                           |
+| `mfe_open_account` | `./OnboardingProgressWidget`   | `() => JSX`                     | Dashboard tile                                |
+| `mfe_trading`      | `./TradingPage`                | `() => JSX`                     | `/trading/*` route                            |
+| `mfe_trading`      | `./PortfolioWidget`            | `() => JSX`                     | Dashboard tile                                |
 
 The shell declares TypeScript ambient modules for these in `platform-shell/src/vite-env.d.ts` so imports are typed.
 
-**Contract = the exposed name + its default-export component signature.** Nothing else crosses the boundary. No shared code, no shared types at build time. Types for the API are regenerated independently in each MFE from the same Swagger file.
+**Contract = the exposed name + its component signature (props included).** Nothing else crosses the boundary. No shared code, no shared types at build time. Types for the API are regenerated independently in each MFE from the same Swagger file.
+
+## Composition patterns
+
+Two distinct patterns live in this POC. Both are driven by the shell; no MFE ever imports another MFE.
+
+### 1. Orchestration (Dashboard)
+
+The shell owns a surface and assembles it from widgets of several teams. Shell knows every team's widget; the teams don't know about each other.
+
+```tsx
+// platform-shell/src/pages/DashboardPage.tsx
+const OutstandingBalanceWidget = lazy(() => import("mfe_billing/OutstandingBalanceWidget"));
+const OnboardingProgressWidget = lazy(() => import("mfe_open_account/OnboardingProgressWidget"));
+const PortfolioWidget          = lazy(() => import("mfe_trading/PortfolioWidget"));
+```
+
+### 2. Slot composition (Open Account page)
+
+A remote's page reserves a **typed slot** (a `ReactNode` prop) and stays agnostic about what goes in it. The shell fills the slot with a widget from another team. The hosting remote still has zero imports from the other remote.
+
+```tsx
+// mfe-open-account/src/pages/OpenAccountPage.tsx  — Open Account team
+interface OpenAccountPageProps { billingSlot?: ReactNode; }
+export default function OpenAccountPage({ billingSlot }: OpenAccountPageProps = {}) {
+  return (
+    <div>
+      …
+      {billingSlot && <aside>{billingSlot}</aside>}
+      …
+    </div>
+  );
+}
+
+// platform-shell/src/App.tsx  — Platform Core team composes
+<OpenAccountPage
+  billingSlot={
+    <MfeBoundary label="Outstanding balance widget" fallbackHeight={140}>
+      <OutstandingBalanceWidget />
+    </MfeBoundary>
+  }
+/>
+```
+
+The ambient declaration in `platform-shell/src/vite-env.d.ts` carries the prop shape so the composition is type-checked in the shell.
+
+**Why this matters:** teams can evolve independently (Platform Core swaps the slot's contents without Open Account changing), yet cross-team widgets appear inside team-owned surfaces. No shared-UI package is needed. The shared `QueryClient` still drives invalidation — a `billingKeys.summary()` invalidation in Billing refreshes the widget wherever it happens to be mounted, including inside Open Account.
 
 ## Authentication
 

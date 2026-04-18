@@ -212,9 +212,59 @@ Try a massive buy (like 100,000 NVDA on `acc_kyc_1`) — rejected with "Insuffic
 
 ---
 
-## 8 · End-to-end workflow across teams (3 min)
+## 8 · Slot composition — a second pattern (2 min)
 
-> "Let me show you a flow that touches both teams."
+> "The dashboard was the shell assembling a new surface. Here's the reverse: a team's own page reserves a slot for another team's widget."
+
+Navigate to **/accounts**. Point at the "Firm billing health" panel in the top right — it renders the same `OutstandingBalanceWidget` shown on the Dashboard and on `/billing`.
+
+Open `packages/mfe-open-account/src/pages/OpenAccountPage.tsx`:
+
+```tsx
+interface OpenAccountPageProps {
+  billingSlot?: ReactNode;
+}
+export default function OpenAccountPage({ billingSlot }: OpenAccountPageProps = {}) {
+  return (
+    <div>
+      …
+      {billingSlot && <aside>{billingSlot}</aside>}
+      …
+    </div>
+  );
+}
+```
+
+> "Open Account's page doesn't know what a billing widget is. It reserves a `ReactNode` slot. That's the entire footprint of Billing in this file. Grep the package — zero imports from `mfe_billing`."
+
+Open `packages/platform-shell/src/App.tsx` and show the `/accounts` route:
+
+```tsx
+<OpenAccountPage
+  billingSlot={
+    <MfeBoundary label="Outstanding balance widget" fallbackHeight={140}>
+      <OutstandingBalanceWidget />
+    </MfeBoundary>
+  }
+/>
+```
+
+> "Platform Core is the only place that knows about both teams. The inner `MfeBoundary` means a Billing outage shows a widget-sized error; Open Account's onboarding pipeline keeps working."
+
+Tie it back to the shared cache: navigate to **/billing**, pay an invoice, return to **/accounts** — the figure inside the slot has already updated. Same `QueryClient` singleton, same `billingKeys.summary()` key.
+
+**Two composition patterns from the same primitives:**
+
+| Pattern             | Who owns the surface         | Example in this repo                   |
+| ------------------- | ---------------------------- | -------------------------------------- |
+| Orchestration       | Shell composes from widgets  | Dashboard (`DashboardPage.tsx`)        |
+| Slot composition    | MFE exposes `ReactNode` prop | `OpenAccountPage.billingSlot`          |
+
+---
+
+## 9 · End-to-end workflow across teams (2 min)
+
+> "Let me show you a flow that touches every team."
 
 1. Navigate to **/accounts**. Start a new onboarding (form on the left). Watch it appear in the pipeline.
 2. Click **Advance** until status is `verified`.
@@ -223,7 +273,7 @@ Try a massive buy (like 100,000 NVDA on `acc_kyc_1`) — rejected with "Insuffic
 
 ---
 
-## 9 · Types & API contract (2 min)
+## 10 · Types & API contract (2 min)
 
 Open `packages/api/src/swagger.ts` briefly — point at `tags: ["Billing"]` and `tags: ["Accounts"]`.
 
@@ -239,7 +289,7 @@ Point at the output: same Swagger, two independent generated client folders. Eac
 
 ---
 
-## 10 · Tradeoffs (2 min)
+## 11 · Tradeoffs (2 min)
 
 Be honest. Show this slide or just read it aloud:
 
@@ -257,7 +307,7 @@ Be honest. Show this slide or just read it aloud:
 
 ---
 
-## 11 · Q&A (pad)
+## 12 · Q&A (pad)
 
 Common questions worth preparing:
 
@@ -287,3 +337,5 @@ Common questions worth preparing:
 | Lazy imports in shell               | `packages/platform-shell/src/pages/DashboardPage.tsx` |
 | Shared-cache invalidation           | `packages/mfe-billing/src/components/InvoicesTable.tsx` |
 | Widget using same cache key         | `packages/mfe-billing/src/widgets/OutstandingBalanceWidget.tsx` |
+| Slot composition (MFE side)         | `packages/mfe-open-account/src/pages/OpenAccountPage.tsx` — `billingSlot` prop |
+| Slot composition (shell side)       | `packages/platform-shell/src/App.tsx` — `/accounts` route |
