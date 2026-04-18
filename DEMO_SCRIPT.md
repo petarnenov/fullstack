@@ -5,7 +5,7 @@ Goal: they should leave understanding what Module Federation buys them, what it 
 
 Total budget: 30 minutes. Cut ruthlessly if running long.
 
-Before a session, clear `amp.auth.token` from localStorage (DevTools → Application → Local Storage) so the first load shows the login page.
+Before a session, clear the session cookies for `localhost:5173` (DevTools → Application → Cookies → delete `amp_access_token`, `amp_refresh_token`, `amp_csrf_token`) so the first load shows the login page.
 
 ## Before you start
 
@@ -71,14 +71,17 @@ Open http://localhost:5173 — you land on `/login`.
 
 Click one of the **demo credential** rows to autofill. Sign in.
 
-- The shell calls `POST /api/auth/login`, stores the token in `localStorage`, installs `window.__AMP_PLATFORM__ = { getToken }`, and invalidates the whole React Query cache so widgets fetch under the new identity.
-- Every request to `/api/billing/*`, `/api/accounts/*` and `/api/trading/*` now carries `Authorization: Bearer …` because each MFE's axios interceptor reads from that window bag.
+- The shell calls `POST /api/auth/login`. The API sets three cookies: `amp_access_token` (httpOnly, 15-min TTL), `amp_refresh_token` (httpOnly, SameSite=Strict, 7-day TTL), and `amp_csrf_token` (readable by JS, SameSite=Strict). The response body returns `{ user, csrfToken }`.
+- The shell installs `window.__AMP_PLATFORM__ = { user, csrfToken, logout }` and invalidates the whole React Query cache so widgets fetch under the new identity.
+- Every request to `/api/billing/*`, `/api/accounts/*` and `/api/trading/*` is same-origin via the vite proxy, so the browser attaches the access cookie automatically. MFE axios clients set `withCredentials: true` and, on state-changing methods only, echo `csrfToken` as the `X-CSRF-Token` header (double-submit cookie pattern).
 
-Open `packages/platform-shell/src/auth/platformSdk.ts` and read the five-line interface aloud. Then open `packages/mfe-billing/src/api/index.ts` → the request interceptor. **That's the entire cross-team auth contract.** No shared package, no federation-exposed module. Every MFE duplicates the interface inline intentionally.
+Open DevTools → Application → Cookies and point at the three cookies. Note that `amp_access_token` shows `HttpOnly ✓` — invisible to JS, immune to XSS-driven token theft. Only `amp_csrf_token` is JS-readable, and it's useless on its own without the httpOnly access cookie the browser pairs it with.
 
-> "This trade-off is the 2-minute architecture conversation. The window bag is minimum-viable for a demo. Federation-exposed SDK or an import map is the production upgrade — same shape, stronger type seam."
+Open `packages/platform-shell/src/auth/platformSdk.ts` and read the interface aloud. Then open `packages/mfe-billing/src/api/index.ts` → the request interceptor. **That's the entire cross-team auth contract.** No shared package, no federation-exposed module. Every MFE duplicates the interface inline intentionally.
 
-Reload the page. You stay logged in: the shell's bootstrap effect calls `/api/auth/me`, rehydrates the user, and replays the widgets.
+> "The MFE never sees a token. It reads `csrfToken` off the window and lets the browser handle the credential. Federation-exposed SDK or an import map is the next iteration — same shape, stronger type seam."
+
+Reload the page. You stay logged in: the shell's bootstrap effect calls `/api/auth/me` using the access cookie, rehydrates the user, and replays the widgets. If the access cookie has expired but the refresh cookie is still valid, the shell does a silent `POST /api/auth/refresh` (rotating all three tokens) before declaring the user anonymous.
 
 ---
 

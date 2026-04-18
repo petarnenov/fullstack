@@ -202,29 +202,36 @@ Auth is the first place the MFE pattern leaks. Options:
 2. **Shared auth package** → reintroduces build coupling.
 3. **Shell owns auth, publishes a runtime SDK to remotes** ← we picked this.
 
+The session is three cookies set by the API on login: `amp_access_token` (httpOnly, 15m), `amp_refresh_token` (httpOnly, SameSite=Strict, 7d), `amp_csrf_token` (JS-readable, SameSite=Strict). Access tokens never reach JS — the browser attaches them automatically on same-origin calls. The only thing MFEs read off the window is the CSRF value.
+
 ```ts
 // platform-shell/src/auth/platformSdk.ts
 export interface PlatformSdk {
-  getToken(): string | null;
+  user: AuthenticatedUser | null;
+  csrfToken: string | null;
+  logout(): Promise<void>;
 }
-window.__AMP_PLATFORM__ = { getToken: () => currentToken };
+window.__AMP_PLATFORM__ = { user, csrfToken, logout };
 ```
 
 ```ts
 // mfe-trading/src/api/index.ts — runs inside each MFE's axios
+const http = axios.create({ baseURL: "/api", withCredentials: true });
+
 http.interceptors.request.use((config) => {
-  const sdk = window.__AMP_PLATFORM__;
-  const token = sdk?.getToken?.() ?? null;
-  if (token) config.headers.set("Authorization", `Bearer ${token}`);
+  const method = (config.method ?? "get").toLowerCase();
+  if (["get", "head", "options"].includes(method)) return config;
+  const csrf = window.__AMP_PLATFORM__?.csrfToken ?? null;
+  if (csrf) config.headers.set("X-CSRF-Token", csrf);
   return config;
 });
 ```
 
-On 401, the MFE fires `amp:auth-expired` on window; the shell hears it and forces logout.
+On 401, the MFE fires `amp:auth-expired` on window; the shell catches it, attempts a silent `/api/auth/refresh` (which rotates all three tokens with reuse detection) and forces logout if that fails.
 
 **Cross-team contract = one interface shape + one event name.** Duplicated inline in each MFE. Zero build coupling.
 
-> "In production you'd formalise this as a federation-exposed SDK or an import map. The window bag is minimum-viable, and it teaches the right mental model: contract first, mechanism second."
+> "The MFE never handles a credential. It reads a CSRF token, lets the browser carry the session cookie, and the shell owns rotation + revocation. That's the production shape of shell-owned auth."
 
 ---
 
@@ -385,11 +392,13 @@ What's POC-only in this repo and what you'd change for real:
 | POC                                         | Production                                                     |
 | ------------------------------------------- | -------------------------------------------------------------- |
 | Window bag for auth SDK                     | Federation-exposed SDK OR import-map module with typed stubs   |
-| Opaque tokens in `localStorage`             | JWT (or opaque) in httpOnly cookies; refresh tokens; OIDC IdP  |
+| In-memory `authRepository` with demo users  | External OIDC IdP (Keycloak / Auth0 / Cognito) for SSO + MFA   |
 | Hardcoded remote URLs in vite.config        | Build-time injection or runtime manifest + versioned URLs      |
-| In-memory repositories                      | Real DBs per domain (or one DB, schema-separated)              |
+| In-memory domain repositories               | Real DBs per domain (or one DB, schema-separated)              |
 | No shared design system                     | `@company/tokens` package with CSS variables + component lib   |
 | No cross-MFE event bus                      | Shared cache covers ~80%; add typed events for the rest        |
+
+Already production-shaped in this POC: argon2id password hashing, httpOnly access + refresh cookies with SameSite, refresh-token rotation with reuse detection, CSRF double-submit, and rate-limited `/login` + `/refresh`. The remaining auth step is federating identity out to an IdP, not hardening the local flow.
 
 ---
 

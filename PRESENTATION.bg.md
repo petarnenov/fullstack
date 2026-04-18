@@ -202,29 +202,36 @@ Auth-ът е първото място, където MFE pattern-ът тече. 
 2. **Shared auth пакет** → връща build coupling.
 3. **Shell притежава auth, публикува runtime SDK към remote-ите** ← избрахме това.
 
+Сесията са три cookies, които API-то задава при login: `amp_access_token` (httpOnly, 15 мин), `amp_refresh_token` (httpOnly, SameSite=Strict, 7 дни), `amp_csrf_token` (JS-четим, SameSite=Strict). Access token-ите не стигат до JS — браузърът ги закача автоматично на same-origin заявки. Единственото, което MFE-тата четат от window-а, е CSRF стойността.
+
 ```ts
 // platform-shell/src/auth/platformSdk.ts
 export interface PlatformSdk {
-  getToken(): string | null;
+  user: AuthenticatedUser | null;
+  csrfToken: string | null;
+  logout(): Promise<void>;
 }
-window.__AMP_PLATFORM__ = { getToken: () => currentToken };
+window.__AMP_PLATFORM__ = { user, csrfToken, logout };
 ```
 
 ```ts
 // mfe-trading/src/api/index.ts — работи в axios на всеки MFE
+const http = axios.create({ baseURL: "/api", withCredentials: true });
+
 http.interceptors.request.use((config) => {
-  const sdk = window.__AMP_PLATFORM__;
-  const token = sdk?.getToken?.() ?? null;
-  if (token) config.headers.set("Authorization", `Bearer ${token}`);
+  const method = (config.method ?? "get").toLowerCase();
+  if (["get", "head", "options"].includes(method)) return config;
+  const csrf = window.__AMP_PLATFORM__?.csrfToken ?? null;
+  if (csrf) config.headers.set("X-CSRF-Token", csrf);
   return config;
 });
 ```
 
-При 401, MFE-то fire-ва `amp:auth-expired` на `window`; shell-ът го чува и форсира logout.
+При 401, MFE-то fire-ва `amp:auth-expired` на `window`; shell-ът го хваща, прави silent `/api/auth/refresh` (който ротира и трите токена с reuse detection) и форсира logout ако refresh-ът пропадне.
 
 **Cross-team контракт = един interface shape + едно име на event.** Дублиран inline във всеки MFE. Нула build coupling.
 
-> "В продукция бихте формализирали това като federation-exposed SDK или import map. Window bag-ът е minimum-viable и учи правилния mental model: контракт първо, механизъм второ."
+> "MFE-то никога не борави с credential. Чете CSRF токен, оставя браузъра да носи session cookie-то, а shell-ът владее ротацията + revocation-а. Това е production shape-ът на shell-owned auth."
 
 ---
 
@@ -382,14 +389,16 @@ plugins: [
 
 Какво е POC-only в това репо и какво бихте сменили за реална работа:
 
-| POC                                         | Production                                                     |
-| ------------------------------------------- | -------------------------------------------------------------- |
-| Window bag за auth SDK                      | Federation-exposed SDK ИЛИ import-map модул с typed stubs      |
-| Opaque tokens в `localStorage`              | JWT (или opaque) в httpOnly cookies; refresh tokens; OIDC IdP  |
-| Hardcoded remote URL-и във vite.config      | Build-time injection или runtime manifest + versioned URL-и    |
-| In-memory repositories                      | Реални DB-та per домейн (или един DB, schema-separated)        |
-| Няма shared дизайн система                  | `@company/tokens` пакет с CSS variables + компонентна lib      |
-| Няма cross-MFE event bus                    | Shared cache покрива ~80%; добави typed events за останалото   |
+| POC                                           | Production                                                     |
+| --------------------------------------------- | -------------------------------------------------------------- |
+| Window bag за auth SDK                        | Federation-exposed SDK ИЛИ import-map модул с typed stubs      |
+| In-memory `authRepository` с demo потребители | Външен OIDC IdP (Keycloak / Auth0 / Cognito) за SSO + MFA      |
+| Hardcoded remote URL-и във vite.config        | Build-time injection или runtime manifest + versioned URL-и    |
+| In-memory domain repositories                 | Реални DB-та per домейн (или един DB, schema-separated)        |
+| Няма shared дизайн система                    | `@company/tokens` пакет с CSS variables + компонентна lib      |
+| Няма cross-MFE event bus                      | Shared cache покрива ~80%; добави typed events за останалото   |
+
+Вече production-shaped в това POC: argon2id password hashing, httpOnly access + refresh cookies със SameSite, refresh-token ротация с reuse detection, CSRF double-submit, и rate-limiting на `/login` + `/refresh`. Остава да федерираш identity-то навън към IdP — не да hardening-ваш local flow-а.
 
 ---
 

@@ -33,7 +33,8 @@ A micro-frontend POC for a realistic platform. Three product teams (Billing, Ope
 │  │  ./Outstndng… │  │  ./OnbrdngPrgrs… │  │  ./PortfolioW…   │     │
 │  └───────┬───────┘  └────────┬─────────┘  └────────┬─────────┘     │
 │          │                   │                     │                │
-│          │   HTTP (axios, same origin, Bearer)     │                │
+│          │   HTTP (axios, same-origin, httpOnly    │                │
+│          │    cookies + X-CSRF-Token header)       │                │
 │          ▼                   ▼                     ▼                │
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │   api     :3000   (shared service, domain-split)              │   │
@@ -112,32 +113,41 @@ The ambient declaration in `platform-shell/src/vite-env.d.ts` carries the prop s
 
 ## Authentication
 
-Auth is a Platform Core concern — the shell owns it end-to-end. Neither MFE knows how login works; they only know how to read the current session.
+Auth is a Platform Core concern — the shell owns it end-to-end. Neither MFE knows how login works; they only know how to echo a CSRF token on state-changing requests and let the browser carry the session cookie.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ platform-shell                                              │
 │                                                             │
-│   AuthContext ─┬──► /api/auth/login (email + password)      │
-│                ├──► /api/auth/me (bootstrap on reload)      │
-│                └──► /api/auth/logout (revoke)               │
+│   AuthContext ─┬──► /api/auth/login  (email + password)     │
+│                ├──► /api/auth/me     (bootstrap on reload)  │
+│                ├──► /api/auth/refresh (silent, on 401)      │
+│                └──► /api/auth/logout (revoke + clear)       │
 │                                                             │
-│   installs on window.__AMP_PLATFORM__ = { getToken }        │
+│   installs window.__AMP_PLATFORM__ =                        │
+│     { user, csrfToken, logout }                             │
 │   listens for window "amp:auth-expired" event               │
 │                                                             │
-│   ProtectedRoute gates /, /billing, /accounts, /settings    │
-│   anonymous → <Navigate to="/login"/>                       │
+│   ProtectedRoute gates /, /billing, /accounts, /settings,   │
+│   /trading  → anonymous → <Navigate to="/login"/>           │
 └──────────────────┬──────────────────────────────────────────┘
                    │ runtime contract (window bag)
+                   │ + browser-managed cookies:
+                   │   amp_access_token   (httpOnly, 15m)
+                   │   amp_refresh_token  (httpOnly, 7d)
+                   │   amp_csrf_token     (JS-readable, SameSite=Strict)
 ┌──────────────────┴──────────────────────────────────────────┐
-│ mfe-billing / mfe-open-account (each)                       │
+│ mfe-billing / mfe-open-account / mfe-trading (each)         │
+│                                                             │
+│   axios: withCredentials: true                              │
 │                                                             │
 │   axios request interceptor:                                │
-│     window.__AMP_PLATFORM__?.getToken?.()                   │
-│       → Authorization: Bearer <token>                       │
+│     if non-safe method:                                     │
+│       X-CSRF-Token: window.__AMP_PLATFORM__?.csrfToken      │
 │                                                             │
 │   axios response interceptor:                               │
 │     on 401 → dispatchEvent("amp:auth-expired")              │
+│              (shell attempts silent refresh, else logout)   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -150,9 +160,9 @@ Auth is a Platform Core concern — the shell owns it end-to-end. Neither MFE kn
 
 For a 30-minute talk the window bag is the minimum that teaches the right mental model (contract-first, zero build coupling). For production I'd pick federation-exposed.
 
-**Backend.** `api/src/domains/auth/` issues opaque tokens from an in-memory session map (not JWT — POC). `api/src/shared/authMiddleware.ts` is applied to `/api/billing/*` and `/api/accounts/*`. Demo users are hardcoded and the login page autofills them via a demo-only `GET /api/auth/demo-credentials` endpoint that would not ship in production.
+**Backend.** `api/src/domains/auth/` hashes demo passwords with argon2id at seed time and issues opaque access + refresh tokens from an in-memory session store. `api/src/shared/authMiddleware.ts` exports `requireAuth` (reads the `amp_access_token` cookie) and `requireCsrf` (double-submit: header `X-CSRF-Token` must equal the `amp_csrf_token` cookie on non-GET methods). Both middlewares are applied to `/api/billing/*`, `/api/accounts/*`, and `/api/trading/*`. `/api/auth/login` is rate-limited (10/min), `/api/auth/refresh` is rate-limited (30/min) and rotates the refresh token with reuse detection — replaying a rotated refresh token kills the whole session family. Demo users are hardcoded; `GET /api/auth/demo-credentials` is gated behind `NODE_ENV !== "production"`.
 
-**Session persistence.** Token lives in `localStorage` under `amp.auth.token`. On boot, the shell calls `/api/auth/me` with the stored token; 401 clears it and redirects to `/login`. On login, the shell invalidates the entire React Query cache — every widget refetches under the new identity without extra wiring, thanks to the shared `QueryClient` singleton.
+**Session persistence.** The browser carries the session. On boot, the shell calls `/api/auth/me`; if the access cookie is valid it returns the user. If the access cookie has expired but the refresh cookie is still alive, the shell attempts a silent `POST /api/auth/refresh` (which rotates all three cookies) before falling back to anonymous. On successful login or refresh, the shell invalidates the entire React Query cache — every widget refetches under the new identity without extra wiring, thanks to the shared `QueryClient` singleton.
 
 ## Shared singletons
 
@@ -215,7 +225,7 @@ Each package imports only the contract types it needs and uses plain axios for c
 - **No shared-ui package.** Design tokens are duplicated in each package's CSS. In production, a `@amp/design-tokens` workspace with CSS variables would be the first extraction.
 - **No event bus / cross-MFE messaging.** All cross-MFE effects go through the shared `QueryClient` (cache invalidation) or the backend. If teams need imperative comms, a custom-events bus at the shell level is the next step.
 - **No dynamic import-maps / runtime remote URL discovery.** Remote URLs are hard-coded in `platform-shell/vite.config.ts`. Production would inject these at build time or load a manifest.
-- **No real IdP.** Auth uses opaque in-memory tokens + hardcoded demo users. Production swaps the `authRepository` for an OIDC / IdP integration and moves the token to an httpOnly cookie.
+- **No external IdP.** The local auth stack is production-grade in shape — argon2id password hashing, httpOnly session cookies, refresh-token rotation with reuse detection, CSRF double-submit, and rate-limited `/login` + `/refresh`. It is still in-memory and self-hosted. Production swaps the `authRepository` for an OIDC / IdP integration (Keycloak, Auth0, Cognito, Azure AD) so SSO, MFA, B2B federation, and user lifecycle are all handled outside the app.
 - **No persistence.** Repositories are in-memory arrays; data resets on API restart.
 
 ## Tech stack
