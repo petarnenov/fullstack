@@ -1,265 +1,231 @@
-<mxfile host="app.diagrams.net" modified="2026-04-18T12:00:00.000Z" agent="Claude Code" version="24.0.0" type="device">
-  <diagram name="1. Login sequence" id="login">
-    <mxGraphModel dx="1500" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
-      <root>
-        <mxCell id="0" />
-        <mxCell id="1" parent="0" />
-        <mxCell id="title" value="Production login — httpOnly cookies + argon2id + CSRF issuance" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="40" y="10" width="1520" height="30" as="geometry" />
-        </mxCell>
-
-        <mxCell id="a1" value="Browser&#10;(user @ :5173)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13" vertex="1" parent="1">
-          <mxGeometry x="60" y="50" width="200" height="50" as="geometry" />
-        </mxCell>
-        <mxCell id="a2" value="platform-shell&#10;AuthContext" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13" vertex="1" parent="1">
-          <mxGeometry x="460" y="50" width="200" height="50" as="geometry" />
-        </mxCell>
-        <mxCell id="a3" value="api(:3000)&#10;auth.router + repo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;fontSize=13" vertex="1" parent="1">
-          <mxGeometry x="860" y="50" width="200" height="50" as="geometry" />
-        </mxCell>
-        <mxCell id="a4" value="argon2id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=13" vertex="1" parent="1">
-          <mxGeometry x="1260" y="50" width="200" height="50" as="geometry" />
-        </mxCell>
-
-        <mxCell id="ll1" style="endArrow=none;dashed=1;html=1;strokeColor=#6c8ebf;strokeWidth=1" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="160" y="100" as="sourcePoint" />
-            <mxPoint x="160" y="830" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="ll2" style="endArrow=none;dashed=1;html=1;strokeColor=#82b366;strokeWidth=1" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="560" y="100" as="sourcePoint" />
-            <mxPoint x="560" y="830" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="ll3" style="endArrow=none;dashed=1;html=1;strokeColor=#d79b00;strokeWidth=1" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="960" y="100" as="sourcePoint" />
-            <mxPoint x="960" y="830" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-        <mxCell id="ll4" style="endArrow=none;dashed=1;html=1;strokeColor=#d6b656;strokeWidth=1" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1360" y="100" as="sourcePoint" />
-            <mxPoint x="1360" y="830" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="m1" value="1. submit login form" style="endArrow=classic;html=1;strokeWidth=2;fontSize=12;verticalAlign=bottom" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="160" y="150" as="sourcePoint" />
-            <mxPoint x="560" y="150" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="m2" value="2. POST /api/auth/login&#10;body: { email, password }" style="endArrow=classic;html=1;strokeWidth=2;fontSize=12;verticalAlign=bottom" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="560" y="210" as="sourcePoint" />
-            <mxPoint x="960" y="210" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="n1" value="rateLimit(10/min per IP)&#10;→ 429 on flood" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11" vertex="1" parent="1">
-          <mxGeometry x="870" y="240" width="180" height="40" as="geometry" />
-        </mxCell>
-
-        <mxCell id="m3" value="3. verifyCredentials(email, password)" style="endArrow=classic;html=1;strokeWidth=2;fontSize=12;verticalAlign=bottom" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="960" y="320" as="sourcePoint" />
-            <mxPoint x="1360" y="320" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="n2" value="argon2.verify(passwordHash, password)&#10;• constant-time comparison&#10;• unknown email → verify DUMMY_HASH&#10;   (identical timing — anti-enumeration)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left" vertex="1" parent="1">
-          <mxGeometry x="1270" y="350" width="280" height="70" as="geometry" />
-        </mxCell>
-
-        <mxCell id="m4" value="4. return AuthenticatedUser  (or InvalidCredentialsError)" style="endArrow=classic;html=1;dashed=1;strokeWidth=2;fontSize=12;verticalAlign=bottom" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="1360" y="460" as="sourcePoint" />
-            <mxPoint x="960" y="460" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="n3" value="issueSession(userId):&#10;• accessToken  24B hex random&#10;• refreshToken 32B hex random&#10;• csrfToken    16B hex random&#10;• familyId      8B hex random" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left" vertex="1" parent="1">
-          <mxGeometry x="870" y="490" width="220" height="100" as="geometry" />
-        </mxCell>
-
-        <mxCell id="m5" value="5. 200 OK&#10;Set-Cookie: amp_access_token   — HttpOnly, Lax,    Path=/api,      Max-Age=900&#10;Set-Cookie: amp_refresh_token  — HttpOnly, Strict, Path=/api/auth, Max-Age=604800&#10;Set-Cookie: amp_csrf_token     —           Strict, Path=/,         Max-Age=604800&#10;body: { user, csrfToken }" style="endArrow=classic;html=1;dashed=1;strokeWidth=2;fontSize=11;align=left;verticalAlign=bottom" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="960" y="640" as="sourcePoint" />
-            <mxPoint x="560" y="640" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="n4" value="adoptSession(user, csrfToken):&#10;• window.__AMP_PLATFORM__ = { user, csrfToken, logout }&#10;• queryClient.invalidateQueries() — all MFEs refetch under new identity" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left" vertex="1" parent="1">
-          <mxGeometry x="330" y="680" width="440" height="70" as="geometry" />
-        </mxCell>
-
-        <mxCell id="m6" value="6. Navigate to /dashboard&#10;(browser auto-attaches cookies on subsequent /api calls)" style="endArrow=classic;html=1;strokeWidth=2;fontSize=12;verticalAlign=bottom" edge="1" parent="1">
-          <mxGeometry relative="1" as="geometry">
-            <mxPoint x="560" y="800" as="sourcePoint" />
-            <mxPoint x="160" y="800" as="targetPoint" />
-          </mxGeometry>
-        </mxCell>
-
-        <mxCell id="lg" value="&lt;b&gt;Legend&lt;/b&gt;&#10;• Solid arrow = request&#10;• Dashed arrow = response&#10;• Yellow note = server-side detail&#10;• Purple note = session secret material&#10;• Green note = shell-side state change" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top" vertex="1" parent="1">
-          <mxGeometry x="60" y="870" width="360" height="140" as="geometry" />
-        </mxCell>
-
-        <mxCell id="sec" value="&lt;b&gt;Security layers active in this flow&lt;/b&gt;&#10;1. Rate limit (10/min) blocks brute-force&#10;2. argon2id + DUMMY_HASH prevents user enumeration&#10;3. HttpOnly cookies immune to JS (XSS cannot steal access/refresh)&#10;4. SameSite=Strict on refresh + csrf blocks cross-site CSRF&#10;5. SameSite=Lax on access allows top-nav GETs, blocks cross-site POST&#10;6. familyId enables refresh-token reuse detection on later calls" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fad9d5;strokeColor=#ae4132;fontSize=11;align=left;verticalAlign=top" vertex="1" parent="1">
-          <mxGeometry x="440" y="870" width="560" height="140" as="geometry" />
-        </mxCell>
-      </root>
-    </mxGraphModel>
-  </diagram>
-
-  <diagram name="2. Cookie trust model" id="cookies">
-    <mxGraphModel dx="1500" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
-      <root>
-        <mxCell id="0" />
-        <mxCell id="1" parent="0" />
-
-        <mxCell id="title" value="Cookie trust model — what lives where and who can read it" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="40" y="10" width="1520" height="30" as="geometry" />
-        </mxCell>
-
-        <mxCell id="jar" value="Browser cookie jar  (origin: http://localhost:5173)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=14" vertex="1" parent="1">
-          <mxGeometry x="60" y="60" width="1500" height="40" as="geometry" />
-        </mxCell>
-
-        <!-- Access cookie -->
-        <mxCell id="c1" value="&lt;b&gt;amp_access_token&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;verticalAlign=top;align=center" vertex="1" parent="1">
-          <mxGeometry x="80" y="140" width="460" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="c1a" value="Opaque 24-byte random hex&#10;Refers to an in-memory session record on the API&#10;Bound to userId + familyId + csrfToken" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left" vertex="1" parent="1">
-          <mxGeometry x="80" y="180" width="460" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="c1b" value="&lt;b&gt;HttpOnly&lt;/b&gt;       ✓  (JS cannot read or write)&#10;&lt;b&gt;SameSite&lt;/b&gt;       Lax&#10;&lt;b&gt;Path&lt;/b&gt;           /api&#10;&lt;b&gt;Max-Age&lt;/b&gt;        900 s (15 minutes)&#10;&lt;b&gt;Secure&lt;/b&gt;         true in production&#10;&lt;b&gt;Visible to JS?&lt;/b&gt; ✗ NO — XSS cannot steal it" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;align=left;fontFamily=Courier New" vertex="1" parent="1">
-          <mxGeometry x="80" y="240" width="460" height="140" as="geometry" />
-        </mxCell>
-        <mxCell id="c1c" value="&lt;b&gt;Auto-attached by browser on:&lt;/b&gt;&#10;every /api/* request from the same origin,&#10;including top-level navigation GETs (Lax).&#10;Cross-site POST/XHR does NOT send it." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left" vertex="1" parent="1">
-          <mxGeometry x="80" y="390" width="460" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="c1d" value="&lt;b&gt;Mitigates:&lt;/b&gt; XSS-driven token theft&#10;(primary reason we stopped using localStorage)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fad9d5;strokeColor=#ae4132;fontSize=11;align=left" vertex="1" parent="1">
-          <mxGeometry x="80" y="480" width="460" height="50" as="geometry" />
-        </mxCell>
-
-        <!-- Refresh cookie -->
-        <mxCell id="c2" value="&lt;b&gt;amp_refresh_token&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;verticalAlign=top;align=center" vertex="1" parent="1">
-          <mxGeometry x="570" y="140" width="460" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="c2a" value="Opaque 32-byte random hex&#10;Single-use: each /refresh call marks this one revoked&#10;and issues a new refresh token in the same familyId" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left" vertex="1" parent="1">
-          <mxGeometry x="570" y="180" width="460" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="c2b" value="&lt;b&gt;HttpOnly&lt;/b&gt;       ✓&#10;&lt;b&gt;SameSite&lt;/b&gt;       Strict  (only same-origin requests)&#10;&lt;b&gt;Path&lt;/b&gt;           /api/auth  (only sent on auth endpoints)&#10;&lt;b&gt;Max-Age&lt;/b&gt;        604 800 s (7 days)&#10;&lt;b&gt;Secure&lt;/b&gt;         true in production&#10;&lt;b&gt;Visible to JS?&lt;/b&gt; ✗ NO" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;align=left;fontFamily=Courier New" vertex="1" parent="1">
-          <mxGeometry x="570" y="240" width="460" height="140" as="geometry" />
-        </mxCell>
-        <mxCell id="c2c" value="&lt;b&gt;Auto-attached by browser on:&lt;/b&gt;&#10;only same-origin requests to /api/auth/*.&#10;Other /api endpoints never see it at all —&#10;minimises attack surface." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left" vertex="1" parent="1">
-          <mxGeometry x="570" y="390" width="460" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="c2d" value="&lt;b&gt;Mitigates:&lt;/b&gt; stolen refresh token replay&#10;(rotation + reuse detection kills the family)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fad9d5;strokeColor=#ae4132;fontSize=11;align=left" vertex="1" parent="1">
-          <mxGeometry x="570" y="480" width="460" height="50" as="geometry" />
-        </mxCell>
-
-        <!-- CSRF cookie -->
-        <mxCell id="c3" value="&lt;b&gt;amp_csrf_token&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;verticalAlign=top;align=center" vertex="1" parent="1">
-          <mxGeometry x="1060" y="140" width="460" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="c3a" value="Opaque 16-byte random hex&#10;Echoed by client in X-CSRF-Token header on&#10;state-changing requests (double-submit pattern)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left" vertex="1" parent="1">
-          <mxGeometry x="1060" y="180" width="460" height="60" as="geometry" />
-        </mxCell>
-        <mxCell id="c3b" value="&lt;b&gt;HttpOnly&lt;/b&gt;       ✗  (readable + writable by JS)&#10;&lt;b&gt;SameSite&lt;/b&gt;       Strict&#10;&lt;b&gt;Path&lt;/b&gt;           /&#10;&lt;b&gt;Max-Age&lt;/b&gt;        604 800 s (7 days)&#10;&lt;b&gt;Secure&lt;/b&gt;         true in production&#10;&lt;b&gt;Visible to JS?&lt;/b&gt; ✓ YES — shell publishes via SDK" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;align=left;fontFamily=Courier New" vertex="1" parent="1">
-          <mxGeometry x="1060" y="240" width="460" height="140" as="geometry" />
-        </mxCell>
-        <mxCell id="c3c" value="&lt;b&gt;Auto-attached by browser on:&lt;/b&gt;&#10;all same-origin requests. Cross-site requests&#10;never send it (Strict), and even if they did,&#10;attacker cannot read its value to match.&#10;MFE interceptor echoes it as X-CSRF-Token header." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left" vertex="1" parent="1">
-          <mxGeometry x="1060" y="390" width="460" height="80" as="geometry" />
-        </mxCell>
-        <mxCell id="c3d" value="&lt;b&gt;Mitigates:&lt;/b&gt; cross-site request forgery&#10;(header must equal cookie; attacker can set neither)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fad9d5;strokeColor=#ae4132;fontSize=11;align=left" vertex="1" parent="1">
-          <mxGeometry x="1060" y="480" width="460" height="50" as="geometry" />
-        </mxCell>
-
-        <!-- Family binding -->
-        <mxCell id="fam" value="&lt;b&gt;Server-side binding — familyId links all three&lt;/b&gt;&#10;The three cookies are not independent. issueSession() generates a familyId and stores it in both the access-session record and the refresh-token record. When the refresh token is rotated on /refresh, the server calls issueSession(userId, existingFamilyId) so the new access + refresh + csrf tokens stay in the same family. On logout or refresh-reuse detection, killFamily(familyId) deletes every access session and every refresh token tied to that familyId — clearing all three cookies server-side even if the browser still holds them." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=top" vertex="1" parent="1">
-          <mxGeometry x="80" y="570" width="1440" height="130" as="geometry" />
-        </mxCell>
-
-        <!-- Attack matrix -->
-        <mxCell id="attackTitle" value="&lt;b&gt;What this model resists and what it doesn't&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=14;fontStyle=1" vertex="1" parent="1">
-          <mxGeometry x="80" y="720" width="1440" height="30" as="geometry" />
-        </mxCell>
-
-        <mxCell id="r1h" value="Threat" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#333333;strokeColor=#000000;fontSize=12;fontStyle=1;fontColor=#ffffff" vertex="1" parent="1">
-          <mxGeometry x="80" y="750" width="420" height="30" as="geometry" />
-        </mxCell>
-        <mxCell id="r2h" value="Defence" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#333333;strokeColor=#000000;fontSize=12;fontStyle=1;fontColor=#ffffff" vertex="1" parent="1">
-          <mxGeometry x="500" y="750" width="700" height="30" as="geometry" />
-        </mxCell>
-        <mxCell id="r3h" value="Residual risk" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#333333;strokeColor=#000000;fontSize=12;fontStyle=1;fontColor=#ffffff" vertex="1" parent="1">
-          <mxGeometry x="1200" y="750" width="320" height="30" as="geometry" />
-        </mxCell>
-
-        <mxCell id="row1a" value="XSS steals session token" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="80" y="780" width="420" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="row1b" value="Access + refresh are HttpOnly → JS cannot read them. CSRF token is readable but useless alone without HttpOnly pair." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="500" y="780" width="700" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="row1c" value="XSS can still impersonate user in-page until token expires" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="1200" y="780" width="320" height="40" as="geometry" />
-        </mxCell>
-
-        <mxCell id="row2a" value="CSRF: attacker site POSTs to our API" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="80" y="820" width="420" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="row2b" value="Double-submit: X-CSRF-Token header must equal amp_csrf_token cookie; cross-site cannot read the cookie and cannot set custom headers without preflight." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="500" y="820" width="700" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="row2c" value="Same-site subdomain takeover bypass" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="1200" y="820" width="320" height="40" as="geometry" />
-        </mxCell>
-
-        <mxCell id="row3a" value="Brute-force password guessing" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="80" y="860" width="420" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="row3b" value="express-rate-limit: 10/min per IP on /login; argon2id is ~50ms per verify — multiplies the cost of each attempt." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="500" y="860" width="700" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="row3c" value="Distributed brute-force from botnet IPs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="1200" y="860" width="320" height="40" as="geometry" />
-        </mxCell>
-
-        <mxCell id="row4a" value="User enumeration via timing" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="80" y="900" width="420" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="row4b" value="Unknown email triggers a DUMMY_HASH verify → same ~50ms cost as a real user. Same 401 response shape." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="500" y="900" width="700" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="row4c" value="Side-channel via different 429 triggers etc." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="1200" y="900" width="320" height="40" as="geometry" />
-        </mxCell>
-
-        <mxCell id="row5a" value="Stolen refresh token replay" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="80" y="940" width="420" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="row5b" value="Rotation: second use of a refresh token is flagged; killFamily() invalidates every access + refresh in the family. Legitimate user gets logged out too — detection trumps convenience." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="500" y="940" width="700" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="row5c" value="Attacker racing legitimate refresh within ms" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="1200" y="940" width="320" height="40" as="geometry" />
-        </mxCell>
-
-        <mxCell id="row6a" value="Session persists after logout on other tab" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="80" y="980" width="420" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="row6b" value="/logout calls killFamily() on the refresh cookie's family — all access sessions under that familyId die server-side, next API call 401s → amp:auth-expired → clearSession in shell." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="500" y="980" width="700" height="40" as="geometry" />
-        </mxCell>
-        <mxCell id="row6c" value="Client-side stale user prop until next fetch" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" vertex="1" parent="1">
-          <mxGeometry x="1200" y="980" width="320" height="40" as="geometry" />
-        </mxCell>
-      </root>
-    </mxGraphModel>
-  </diagram>
+<mxfile host="65bd71144e">
+    <diagram name="1. Login sequence" id="login">
+        <mxGraphModel dx="628" dy="497" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="Production login — httpOnly cookies + argon2id + CSRF issuance" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="40" y="10" width="1520" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="a1" value="Browser&#xa;(user @ :5173)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=13" parent="1" vertex="1">
+                    <mxGeometry x="60" y="50" width="200" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="a2" value="platform-shell&#xa;AuthContext" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;fontSize=13" parent="1" vertex="1">
+                    <mxGeometry x="460" y="50" width="200" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="a3" value="api(:3000)&#xa;auth.router + repo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;fontSize=13" parent="1" vertex="1">
+                    <mxGeometry x="860" y="50" width="200" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="a4" value="argon2id" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=13" parent="1" vertex="1">
+                    <mxGeometry x="1260" y="50" width="200" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="ll1" style="endArrow=none;dashed=1;html=1;strokeColor=#6c8ebf;strokeWidth=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="160" y="100" as="sourcePoint"/>
+                        <mxPoint x="160" y="830" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="ll2" style="endArrow=none;dashed=1;html=1;strokeColor=#82b366;strokeWidth=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="560" y="100" as="sourcePoint"/>
+                        <mxPoint x="560" y="830" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="ll3" style="endArrow=none;dashed=1;html=1;strokeColor=#d79b00;strokeWidth=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="960" y="100" as="sourcePoint"/>
+                        <mxPoint x="960" y="830" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="ll4" style="endArrow=none;dashed=1;html=1;strokeColor=#d6b656;strokeWidth=1" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1360" y="100" as="sourcePoint"/>
+                        <mxPoint x="1360" y="830" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="m1" value="1. submit login form" style="endArrow=classic;html=1;strokeWidth=2;fontSize=12;verticalAlign=bottom" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="160" y="150" as="sourcePoint"/>
+                        <mxPoint x="560" y="150" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="m2" value="2. POST /api/auth/login&#xa;body: { email, password }" style="endArrow=classic;html=1;strokeWidth=2;fontSize=12;verticalAlign=bottom" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="560" y="210" as="sourcePoint"/>
+                        <mxPoint x="960" y="210" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="n1" value="rateLimit(10/min per IP)&#xa;→ 429 on flood" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="870" y="240" width="180" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="m3" value="3. verifyCredentials(email, password)" style="endArrow=classic;html=1;strokeWidth=2;fontSize=12;verticalAlign=bottom" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="960" y="320" as="sourcePoint"/>
+                        <mxPoint x="1360" y="320" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="n2" value="argon2.verify(passwordHash, password)&#xa;• constant-time comparison&#xa;• unknown email → verify DUMMY_HASH&#xa;   (identical timing — anti-enumeration)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left" parent="1" vertex="1">
+                    <mxGeometry x="1270" y="350" width="280" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="m4" value="4. return AuthenticatedUser  (or InvalidCredentialsError)" style="endArrow=classic;html=1;dashed=1;strokeWidth=2;fontSize=12;verticalAlign=bottom" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="1360" y="460" as="sourcePoint"/>
+                        <mxPoint x="960" y="460" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="n3" value="issueSession(userId):&#xa;• accessToken  24B hex random&#xa;• refreshToken 32B hex random&#xa;• csrfToken    16B hex random&#xa;• familyId      8B hex random" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;align=left" parent="1" vertex="1">
+                    <mxGeometry x="870" y="490" width="220" height="100" as="geometry"/>
+                </mxCell>
+                <mxCell id="m5" value="5. 200 OK&#xa;Set-Cookie: amp_access_token   — HttpOnly, Lax,    Path=/api,      Max-Age=900&#xa;Set-Cookie: amp_refresh_token  — HttpOnly, Strict, Path=/api/auth, Max-Age=604800&#xa;Set-Cookie: amp_csrf_token     —           Strict, Path=/,         Max-Age=604800&#xa;body: { user, csrfToken }" style="endArrow=classic;html=1;dashed=1;strokeWidth=2;fontSize=11;align=left;verticalAlign=bottom" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="960" y="640" as="sourcePoint"/>
+                        <mxPoint x="560" y="640" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="n4" value="adoptSession(user, csrfToken):&#xa;• window.__AMP_PLATFORM__ = { user, csrfToken, logout }&#xa;• queryClient.invalidateQueries() — all MFEs refetch under new identity" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left" parent="1" vertex="1">
+                    <mxGeometry x="330" y="680" width="440" height="70" as="geometry"/>
+                </mxCell>
+                <mxCell id="m6" value="6. Navigate to /dashboard&#xa;(browser auto-attaches cookies on subsequent /api calls)" style="endArrow=classic;html=1;strokeWidth=2;fontSize=12;verticalAlign=bottom" parent="1" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <mxPoint x="560" y="800" as="sourcePoint"/>
+                        <mxPoint x="160" y="800" as="targetPoint"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="lg" value="&lt;b&gt;Legend&lt;/b&gt;&#xa;• Solid arrow = request&#xa;• Dashed arrow = response&#xa;• Yellow note = server-side detail&#xa;• Purple note = session secret material&#xa;• Green note = shell-side state change" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="60" y="870" width="360" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="sec" value="&lt;b&gt;Security layers active in this flow&lt;/b&gt;&#xa;1. Rate limit (10/min) blocks brute-force&#xa;2. argon2id + DUMMY_HASH prevents user enumeration&#xa;3. HttpOnly cookies immune to JS (XSS cannot steal access/refresh)&#xa;4. SameSite=Strict on refresh + csrf blocks cross-site CSRF&#xa;5. SameSite=Lax on access allows top-nav GETs, blocks cross-site POST&#xa;6. familyId enables refresh-token reuse detection on later calls" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fad9d5;strokeColor=#ae4132;fontSize=11;align=left;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="440" y="870" width="560" height="140" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+    <diagram name="2. Cookie trust model" id="cookies">
+        <mxGraphModel dx="628" dy="497" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="title" value="Cookie trust model — what lives where and who can read it" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;fontSize=18;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="40" y="10" width="1520" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="jar" value="Browser cookie jar  (origin: http://localhost:5173)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;fontSize=14" parent="1" vertex="1">
+                    <mxGeometry x="60" y="60" width="1500" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="c1" value="&lt;b&gt;amp_access_token&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;verticalAlign=top;align=center" parent="1" vertex="1">
+                    <mxGeometry x="80" y="140" width="460" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="c1a" value="Opaque 24-byte random hex&#xa;Refers to an in-memory session record on the API&#xa;Bound to userId + familyId + csrfToken" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left" parent="1" vertex="1">
+                    <mxGeometry x="80" y="180" width="460" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="c1b" value="&lt;b&gt;HttpOnly&lt;/b&gt;       ✓  (JS cannot read or write)&#xa;&lt;b&gt;SameSite&lt;/b&gt;       Lax&#xa;&lt;b&gt;Path&lt;/b&gt;           /api&#xa;&lt;b&gt;Max-Age&lt;/b&gt;        900 s (15 minutes)&#xa;&lt;b&gt;Secure&lt;/b&gt;         true in production&#xa;&lt;b&gt;Visible to JS?&lt;/b&gt; ✗ NO — XSS cannot steal it" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;align=left;fontFamily=Courier New" parent="1" vertex="1">
+                    <mxGeometry x="80" y="240" width="460" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="c1c" value="&lt;b&gt;Auto-attached by browser on:&lt;/b&gt;&#xa;every /api/* request from the same origin,&#xa;including top-level navigation GETs (Lax).&#xa;Cross-site POST/XHR does NOT send it." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left" parent="1" vertex="1">
+                    <mxGeometry x="80" y="390" width="460" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="c1d" value="&lt;b&gt;Mitigates:&lt;/b&gt; XSS-driven token theft&#xa;(primary reason we stopped using localStorage)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fad9d5;strokeColor=#ae4132;fontSize=11;align=left" parent="1" vertex="1">
+                    <mxGeometry x="80" y="480" width="460" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="c2" value="&lt;b&gt;amp_refresh_token&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;verticalAlign=top;align=center" parent="1" vertex="1">
+                    <mxGeometry x="570" y="140" width="460" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="c2a" value="Opaque 32-byte random hex&#xa;Single-use: each /refresh call marks this one revoked&#xa;and issues a new refresh token in the same familyId" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left" parent="1" vertex="1">
+                    <mxGeometry x="570" y="180" width="460" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="c2b" value="&lt;b&gt;HttpOnly&lt;/b&gt;       ✓&#xa;&lt;b&gt;SameSite&lt;/b&gt;       Strict  (only same-origin requests)&#xa;&lt;b&gt;Path&lt;/b&gt;           /api/auth  (only sent on auth endpoints)&#xa;&lt;b&gt;Max-Age&lt;/b&gt;        604 800 s (7 days)&#xa;&lt;b&gt;Secure&lt;/b&gt;         true in production&#xa;&lt;b&gt;Visible to JS?&lt;/b&gt; ✗ NO" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#9673a6;fontSize=11;align=left;fontFamily=Courier New" parent="1" vertex="1">
+                    <mxGeometry x="570" y="240" width="460" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="c2c" value="&lt;b&gt;Auto-attached by browser on:&lt;/b&gt;&#xa;only same-origin requests to /api/auth/*.&#xa;Other /api endpoints never see it at all —&#xa;minimises attack surface." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left" parent="1" vertex="1">
+                    <mxGeometry x="570" y="390" width="460" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="c2d" value="&lt;b&gt;Mitigates:&lt;/b&gt; stolen refresh token replay&#xa;(rotation + reuse detection kills the family)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fad9d5;strokeColor=#ae4132;fontSize=11;align=left" parent="1" vertex="1">
+                    <mxGeometry x="570" y="480" width="460" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="c3" value="&lt;b&gt;amp_csrf_token&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;verticalAlign=top;align=center" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="140" width="460" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="c3a" value="Opaque 16-byte random hex&#xa;Echoed by client in X-CSRF-Token header on&#xa;state-changing requests (double-submit pattern)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=11;align=left" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="180" width="460" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="c3b" value="&lt;b&gt;HttpOnly&lt;/b&gt;       ✗  (readable + writable by JS)&#xa;&lt;b&gt;SameSite&lt;/b&gt;       Strict&#xa;&lt;b&gt;Path&lt;/b&gt;           /&#xa;&lt;b&gt;Max-Age&lt;/b&gt;        604 800 s (7 days)&#xa;&lt;b&gt;Secure&lt;/b&gt;         true in production&#xa;&lt;b&gt;Visible to JS?&lt;/b&gt; ✓ YES — shell publishes via SDK" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#d6b656;fontSize=11;align=left;fontFamily=Courier New" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="240" width="460" height="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="c3c" value="&lt;b&gt;Auto-attached by browser on:&lt;/b&gt;&#xa;all same-origin requests. Cross-site requests&#xa;never send it (Strict), and even if they did,&#xa;attacker cannot read its value to match.&#xa;MFE interceptor echoes it as X-CSRF-Token header." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="390" width="460" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="c3d" value="&lt;b&gt;Mitigates:&lt;/b&gt; cross-site request forgery&#xa;(header must equal cookie; attacker can set neither)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fad9d5;strokeColor=#ae4132;fontSize=11;align=left" parent="1" vertex="1">
+                    <mxGeometry x="1060" y="480" width="460" height="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="fam" value="&lt;b&gt;Server-side binding — familyId links all three&lt;/b&gt;&#xa;The three cookies are not independent. issueSession() generates a familyId and stores it in both the access-session record and the refresh-token record. When the refresh token is rotated on /refresh, the server calls issueSession(userId, existingFamilyId) so the new access + refresh + csrf tokens stay in the same family. On logout or refresh-reuse detection, killFamily(familyId) deletes every access session and every refresh token tied to that familyId — clearing all three cookies server-side even if the browser still holds them." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;align=left;verticalAlign=top" parent="1" vertex="1">
+                    <mxGeometry x="80" y="570" width="1440" height="130" as="geometry"/>
+                </mxCell>
+                <mxCell id="attackTitle" value="&lt;b&gt;What this model resists and what it doesn&#39;t&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;fontSize=14;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="80" y="720" width="1440" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="r1h" value="Threat" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#333333;strokeColor=#000000;fontSize=12;fontStyle=1;fontColor=#ffffff" parent="1" vertex="1">
+                    <mxGeometry x="80" y="750" width="420" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="r2h" value="Defence" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#333333;strokeColor=#000000;fontSize=12;fontStyle=1;fontColor=#ffffff" parent="1" vertex="1">
+                    <mxGeometry x="500" y="750" width="700" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="r3h" value="Residual risk" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#333333;strokeColor=#000000;fontSize=12;fontStyle=1;fontColor=#ffffff" parent="1" vertex="1">
+                    <mxGeometry x="1200" y="750" width="320" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="row1a" value="XSS steals session token" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="80" y="780" width="420" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row1b" value="Access + refresh are HttpOnly → JS cannot read them. CSRF token is readable but useless alone without HttpOnly pair." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="500" y="780" width="700" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row1c" value="XSS can still impersonate user in-page until token expires" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="1200" y="780" width="320" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row2a" value="CSRF: attacker site POSTs to our API" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="80" y="820" width="420" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row2b" value="Double-submit: X-CSRF-Token header must equal amp_csrf_token cookie; cross-site cannot read the cookie and cannot set custom headers without preflight." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="500" y="820" width="700" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row2c" value="Same-site subdomain takeover bypass" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="1200" y="820" width="320" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row3a" value="Brute-force password guessing" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="80" y="860" width="420" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row3b" value="express-rate-limit: 10/min per IP on /login; argon2id is ~50ms per verify — multiplies the cost of each attempt." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="500" y="860" width="700" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row3c" value="Distributed brute-force from botnet IPs" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="1200" y="860" width="320" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row4a" value="User enumeration via timing" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="80" y="900" width="420" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row4b" value="Unknown email triggers a DUMMY_HASH verify → same ~50ms cost as a real user. Same 401 response shape." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="500" y="900" width="700" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row4c" value="Side-channel via different 429 triggers etc." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="1200" y="900" width="320" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row5a" value="Stolen refresh token replay" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="80" y="940" width="420" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row5b" value="Rotation: second use of a refresh token is flagged; killFamily() invalidates every access + refresh in the family. Legitimate user gets logged out too — detection trumps convenience." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="500" y="940" width="700" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row5c" value="Attacker racing legitimate refresh within ms" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="1200" y="940" width="320" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row6a" value="Session persists after logout on other tab" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="80" y="980" width="420" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row6b" value="/logout calls killFamily() on the refresh cookie&#39;s family — all access sessions under that familyId die server-side, next API call 401s → amp:auth-expired → clearSession in shell." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="500" y="980" width="700" height="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="row6c" value="Client-side stale user prop until next fetch" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8f8f8;strokeColor=#666666;fontSize=11;align=left;verticalAlign=middle" parent="1" vertex="1">
+                    <mxGeometry x="1200" y="980" width="320" height="40" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
 </mxfile>
