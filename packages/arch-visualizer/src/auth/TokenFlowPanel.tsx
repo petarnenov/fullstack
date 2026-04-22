@@ -28,7 +28,16 @@ interface Step {
   color?: string;
   kind?: "http" | "sdk" | "storage" | "event";
   withToken?: boolean; // draw golden "T" marker on the particle
-  setsWindow?: string | null; // if defined, window SDK state after this step
+  windowPatch?: Partial<WindowSnapshot>; // partial update to window state after this step
+}
+
+/** Snapshot of what the browser actually holds on behalf of auth. */
+interface WindowSnapshot {
+  sdkToken: string | null;          // what window.__AMP_PLATFORM__.getToken() returns
+  localStorage: string | null;      // localStorage["amp.auth.token"]
+  status: "anonymous" | "bootstrapping" | "authenticated";
+  user: string | null;              // shell AuthContext user.email
+  authListener: boolean;            // amp:auth-expired listener attached
 }
 
 interface Scenario {
@@ -37,8 +46,16 @@ interface Scenario {
   blurb: string;
   steps: Step[];
   totalMs: number;
-  initialWindow: string | null; // what window.__AMP_PLATFORM__ holds when the scenario starts
+  initialWindow: WindowSnapshot;
 }
+
+const EMPTY_WINDOW: WindowSnapshot = {
+  sdkToken: null,
+  localStorage: null,
+  status: "anonymous",
+  user: null,
+  authListener: true,
+};
 
 const LANE_W = 88;
 const LANE_GAP = 8;
@@ -70,18 +87,34 @@ function laneCenterX(id: string): number {
 const TOKEN_ALICE = "eyJhbGc…alice";
 const TOKEN_STALE = "eyJhbGc…stale";
 const TOKEN_ROTATED = "eyJhbGc…rot42";
+const USER_ADA = "ada@amp.demo";
+
+const WIN_AUTHED_ALICE: WindowSnapshot = {
+  sdkToken: TOKEN_ALICE,
+  localStorage: TOKEN_ALICE,
+  status: "authenticated",
+  user: USER_ADA,
+  authListener: true,
+};
+const WIN_STALE_ADA: WindowSnapshot = {
+  sdkToken: TOKEN_STALE,
+  localStorage: TOKEN_STALE,
+  status: "authenticated",
+  user: USER_ADA,
+  authListener: true,
+};
 
 const SCENARIOS: Scenario[] = [
   {
     id: "login",
     title: "1 · Login",
     blurb: "user signs in → BE mints token → FE caches it in window SDK",
-    initialWindow: null,
+    initialWindow: EMPTY_WINDOW,
     steps: [
-      { at: 0, from: "fe", to: "be", label: "POST /api/auth/login", detail: "email + password", color: STEP_COLOR_HTTP, kind: "http" },
+      { at: 0, from: "fe", to: "be", label: "POST /api/auth/login", detail: "email + password", color: STEP_COLOR_HTTP, kind: "http", windowPatch: { status: "bootstrapping" } },
       { at: 1100, from: "be", to: "be", label: "write H2 session", detail: "Hibernate persist", color: STEP_COLOR_TOKEN, kind: "storage" },
       { at: 2000, from: "be", to: "fe", label: "200 { token, user }", detail: "opaque bearer", color: STEP_COLOR_OK, kind: "http", withToken: true },
-      { at: 3100, from: "fe", to: "win", label: "window.__AMP_PLATFORM__", detail: "getToken() closure", color: STEP_COLOR_SDK, kind: "sdk", withToken: true, setsWindow: TOKEN_ALICE },
+      { at: 3100, from: "fe", to: "win", label: "window.__AMP_PLATFORM__", detail: "getToken() closure", color: STEP_COLOR_SDK, kind: "sdk", withToken: true, windowPatch: { sdkToken: TOKEN_ALICE, localStorage: TOKEN_ALICE, status: "authenticated", user: USER_ADA } },
     ],
     totalMs: 4400,
   },
@@ -89,7 +122,7 @@ const SCENARIOS: Scenario[] = [
     id: "authed-call",
     title: "2 · Authed call through the BFF",
     blurb: "MFE pulls token from window → BFF forwards → BE validates",
-    initialWindow: TOKEN_ALICE,
+    initialWindow: WIN_AUTHED_ALICE,
     steps: [
       { at: 0, from: "fe", to: "win", label: "__AMP_PLATFORM__.getToken()", detail: "axios interceptor", color: STEP_COLOR_SDK, kind: "sdk" },
       { at: 900, from: "win", to: "fe", label: "bearer returned", detail: "in-memory", color: STEP_COLOR_TOKEN, kind: "sdk", withToken: true },
@@ -104,7 +137,7 @@ const SCENARIOS: Scenario[] = [
     id: "refresh",
     title: "3 · Refresh on 401",
     blurb: "expired token → BE 401 → FE dispatches amp:auth-expired → silent re-login",
-    initialWindow: TOKEN_STALE,
+    initialWindow: WIN_STALE_ADA,
     steps: [
       { at: 0, from: "fe", to: "be", label: "GET /api/billing/invoices", detail: "stale token", color: STEP_COLOR_HTTP, kind: "http", withToken: true },
       { at: 1100, from: "be", to: "fe", label: "401 session expired", color: STEP_COLOR_ERR, kind: "http" },
@@ -112,7 +145,7 @@ const SCENARIOS: Scenario[] = [
       { at: 3000, from: "fe", to: "be", label: "POST /api/auth/refresh", detail: "refresh_token cookie", color: STEP_COLOR_HTTP, kind: "http" },
       { at: 4100, from: "be", to: "be", label: "rotate H2 session", detail: "invalidate old, insert new", color: STEP_COLOR_TOKEN, kind: "storage" },
       { at: 5100, from: "be", to: "fe", label: "200 { token }", detail: "new bearer", color: STEP_COLOR_OK, kind: "http", withToken: true },
-      { at: 6200, from: "fe", to: "win", label: "window.__AMP_PLATFORM__ updated", detail: "SDK swap, zero reloads", color: STEP_COLOR_SDK, kind: "sdk", withToken: true, setsWindow: TOKEN_ROTATED },
+      { at: 6200, from: "fe", to: "win", label: "window.__AMP_PLATFORM__ updated", detail: "SDK swap, zero reloads", color: STEP_COLOR_SDK, kind: "sdk", withToken: true, windowPatch: { sdkToken: TOKEN_ROTATED, localStorage: TOKEN_ROTATED } },
       { at: 7300, from: "fe", to: "be", label: "GET /api/billing/invoices (retry)", color: STEP_COLOR_HTTP, kind: "http", withToken: true },
       { at: 8400, from: "be", to: "fe", label: "200 invoices[]", color: STEP_COLOR_OK, kind: "http" },
     ],
@@ -122,12 +155,12 @@ const SCENARIOS: Scenario[] = [
     id: "logout",
     title: "4 · Logout",
     blurb: "explicit sign-out clears session + window SDK across every MFE",
-    initialWindow: TOKEN_ALICE,
+    initialWindow: WIN_AUTHED_ALICE,
     steps: [
       { at: 0, from: "fe", to: "be", label: "POST /api/auth/logout", detail: "Authorization: Bearer …", color: STEP_COLOR_HTTP, kind: "http", withToken: true },
       { at: 1100, from: "be", to: "be", label: "delete H2 session", detail: "Hibernate remove", color: STEP_COLOR_ERR, kind: "storage" },
       { at: 2100, from: "be", to: "fe", label: "204 No Content", color: STEP_COLOR_OK, kind: "http" },
-      { at: 3100, from: "fe", to: "win", label: "window.__AMP_PLATFORM__ = null", detail: "SDK cleared", color: STEP_COLOR_ERR, kind: "sdk", setsWindow: null },
+      { at: 3100, from: "fe", to: "win", label: "window.__AMP_PLATFORM__ = null", detail: "SDK cleared", color: STEP_COLOR_ERR, kind: "sdk", windowPatch: { sdkToken: null, localStorage: null, status: "anonymous", user: null } },
       { at: 4100, from: "fe", to: "fe", label: "redirect /login", color: STEP_COLOR_SDK, kind: "event" },
     ],
     totalMs: 5200,
@@ -150,7 +183,7 @@ export function TokenFlowPanel() {
   const scenario = findScenario(active);
   const [flying, setFlying] = useState<FlyingStep[]>([]);
   const [history, setHistory] = useState<Step[]>([]);
-  const [windowContent, setWindowContent] = useState<string | null>(scenario.initialWindow);
+  const [windowContent, setWindowContent] = useState<WindowSnapshot>(scenario.initialWindow);
   const [windowPulse, setWindowPulse] = useState(0);
   const timers = useRef<number[]>([]);
   const scenarioStartRef = useRef(0);
@@ -174,8 +207,8 @@ export function TokenFlowPanel() {
         const key = `${scenario.id}-${step.at}-${Math.random().toString(36).slice(2)}`;
         setFlying((f) => [...f, { ...step, key }]);
         setHistory((h) => [...h.slice(-5), step]);
-        if (step.setsWindow !== undefined) {
-          setWindowContent(step.setsWindow);
+        if (step.windowPatch) {
+          setWindowContent((prev) => ({ ...prev, ...step.windowPatch }));
           setWindowPulse((p) => p + 1);
         }
         const removeId = window.setTimeout(() => {
@@ -337,18 +370,31 @@ function LaneColumn({ lane }: { lane: Lane }) {
   );
 }
 
-function WindowStateCard({ content, pulse }: { content: string | null; pulse: number }) {
+function WindowStateCard({ content, pulse }: { content: WindowSnapshot; pulse: number }) {
   const lane = LANE_BY_ID.win;
   if (!lane) return null;
-  // Card is wider than the lane so the token text has room; it's still centred on the lane.
-  const boxW = LANE_W + 60;
+  const boxW = LANE_W + 80;
   const boxX = lane.x + LANE_W / 2 - boxW / 2;
   const boxY = LANE_Y_TOP + 64;
-  const boxH = 120;
+  const boxH = 218;
   const cx = lane.x + LANE_W / 2;
-  const tokenText = content ?? "null";
-  const isEmpty = content === null;
+  const isEmpty = content.sdkToken === null;
   const tokenColor = isEmpty ? "#475569" : STEP_COLOR_TOKEN;
+  const borderColor = isEmpty ? "#334155" : STEP_COLOR_SDK;
+  const statusColor =
+    content.status === "authenticated" ? STEP_COLOR_OK
+    : content.status === "bootstrapping" ? "#fbbf24"
+    : "#64748b";
+
+  const rows: Array<{ label: string; value: string; color: string; mono?: boolean }> = [
+    { label: "__AMP_PLATFORM__", value: isEmpty ? "undefined" : "{ getToken }", color: isEmpty ? "#475569" : "#c4b5fd", mono: true },
+    { label: "  getToken() →", value: content.sdkToken ?? "null", color: tokenColor, mono: true },
+    { label: "localStorage", value: content.localStorage ? `"${content.localStorage}"` : "—", color: content.localStorage ? "#60a5fa" : "#475569", mono: true },
+    { label: "status", value: content.status, color: statusColor, mono: true },
+    { label: "user", value: content.user ?? "null", color: content.user ? "#e2e8f0" : "#475569", mono: true },
+    { label: "amp:auth-expired", value: content.authListener ? "listening" : "detached", color: content.authListener ? "#c4b5fd" : "#475569", mono: true },
+  ];
+
   return (
     <g>
       <motion.rect
@@ -358,63 +404,60 @@ function WindowStateCard({ content, pulse }: { content: string | null; pulse: nu
         width={boxW}
         height={boxH}
         rx={10}
-        fill={isEmpty ? "#0f172a" : "#2a1f05"}
-        stroke={tokenColor}
+        fill="#0f0b1f"
+        stroke={borderColor}
         strokeWidth={1.6}
         strokeDasharray="5 4"
-        initial={{ opacity: 0.6, scale: 0.94 }}
+        initial={{ opacity: 0.6, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.35, ease: "easeOut" }}
         style={{ transformOrigin: `${cx}px ${boxY + boxH / 2}px` }}
       />
       <text
         x={cx}
-        y={boxY + 20}
+        y={boxY + 18}
         textAnchor="middle"
         fill="#94a3b8"
-        fontSize={11}
+        fontSize={10}
         fontWeight={700}
         letterSpacing={1.8}
         style={{ fontFamily: "ui-sans-serif, system-ui" }}
       >
-        SDK STATE
+        WINDOW STATE
       </text>
-      <text
-        x={cx}
-        y={boxY + 42}
-        textAnchor="middle"
-        fill="#c4b5fd"
-        fontSize={11}
-        style={{ fontFamily: "ui-monospace, SFMono-Regular" }}
-      >
-        getToken() →
-      </text>
-      <motion.text
-        key={`win-val-${pulse}`}
-        x={cx}
-        y={boxY + 74}
-        textAnchor="middle"
-        fill={tokenColor}
-        fontSize={15}
-        fontWeight={700}
-        initial={{ opacity: 0, y: boxY + 82 }}
-        animate={{ opacity: 1, y: boxY + 74 }}
-        transition={{ duration: 0.4 }}
-        style={{ fontFamily: "ui-monospace, SFMono-Regular" }}
-      >
-        {tokenText}
-      </motion.text>
-      <text
-        x={cx}
-        y={boxY + 100}
-        textAnchor="middle"
-        fill="#64748b"
-        fontSize={10}
-        style={{ fontFamily: "ui-monospace, SFMono-Regular" }}
-      >
-        {isEmpty ? "(no session)" : "bearer · in-memory"}
-      </text>
-      {/* Pulse ring when content changes */}
+      <line x1={boxX + 10} x2={boxX + boxW - 10} y1={boxY + 26} y2={boxY + 26} stroke="#1e293b" strokeWidth={1} />
+      {rows.map((row, i) => {
+        const rowY = boxY + 44 + i * 26;
+        return (
+          <g key={row.label}>
+            <text
+              x={boxX + 12}
+              y={rowY}
+              fill="#64748b"
+              fontSize={9.5}
+              style={{ fontFamily: "ui-monospace, SFMono-Regular" }}
+            >
+              {row.label}
+            </text>
+            <motion.text
+              key={`${row.label}-${pulse}`}
+              x={boxX + boxW - 12}
+              y={rowY}
+              textAnchor="end"
+              fill={row.color}
+              fontSize={10.5}
+              fontWeight={600}
+              initial={{ opacity: 0, x: boxX + boxW - 6 }}
+              animate={{ opacity: 1, x: boxX + boxW - 12 }}
+              transition={{ duration: 0.35, delay: i * 0.03 }}
+              style={{ fontFamily: row.mono ? "ui-monospace, SFMono-Regular" : undefined }}
+            >
+              {row.value}
+            </motion.text>
+          </g>
+        );
+      })}
+      {/* Pulse ring when state changes */}
       <motion.rect
         key={`win-pulse-${pulse}`}
         x={boxX}
@@ -423,10 +466,10 @@ function WindowStateCard({ content, pulse }: { content: string | null; pulse: nu
         height={boxH}
         rx={10}
         fill="none"
-        stroke={tokenColor}
+        stroke={borderColor}
         strokeWidth={2.5}
         initial={{ opacity: 0.9, scale: 1 }}
-        animate={{ opacity: 0, scale: 1.22 }}
+        animate={{ opacity: 0, scale: 1.18 }}
         transition={{ duration: 1.3, ease: "easeOut" }}
         style={{ transformOrigin: `${cx}px ${boxY + boxH / 2}px` }}
       />
