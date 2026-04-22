@@ -10,7 +10,8 @@ import type { QueryClient } from "@tanstack/react-query";
  * MFE's *Keys factory), which gives us the originating team without
  * cross-package imports.
  */
-const TELEMETRY_URL = "http://localhost:8091/api/telemetry/events";
+const TELEMETRY_HOST = typeof window !== "undefined" ? window.location.hostname : "localhost";
+const TELEMETRY_URL = `http://${TELEMETRY_HOST}:8091/api/telemetry/events`;
 
 const KEY_TO_MFE: Record<string, { from: string; team: string }> = {
   billing: { from: "mfe-billing", team: "billing" },

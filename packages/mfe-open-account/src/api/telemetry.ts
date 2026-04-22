@@ -7,7 +7,8 @@
  */
 import type { AxiosInstance, InternalAxiosRequestConfig } from "axios";
 
-const TELEMETRY_URL = "http://localhost:8091/api/telemetry/events";
+const TELEMETRY_HOST = typeof window !== "undefined" ? window.location.hostname : "localhost";
+const TELEMETRY_URL = `http://${TELEMETRY_HOST}:8091/api/telemetry/events`;
 const ME = "mfe-open-account";
 const DEFAULT_TARGET = { to: "api-java:accounts", team: "accounts" };
 
