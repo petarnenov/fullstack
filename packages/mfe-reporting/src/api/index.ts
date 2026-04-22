@@ -9,12 +9,19 @@ export type { AccountReport } from "./generated/data-contracts";
  * platform-shell/src/auth/platformSdk.ts). The MFE does not import shell code;
  * it reads the SDK off window at runtime. The shape is duplicated here
  * intentionally — one-line contract, zero build-time coupling.
+ *
+ * Access tokens live in an httpOnly cookie (invisible to JS). The BFF
+ * forwards the cookie to the monolith, so the MFE only needs to let the
+ * browser attach cookies automatically (withCredentials). Reporting is
+ * read-only so no CSRF header is needed — we skip the interceptor entirely.
  */
 interface PlatformSdk {
-  getToken(): string | null;
+  csrfToken: string | null;
 }
 
 const AUTH_EXPIRED_EVENT = "amp:auth-expired";
+const CSRF_HEADER = "X-CSRF-Token";
+const SAFE_METHODS = new Set(["get", "head", "options"]);
 
 // Reporting talks to its BFF (packages/bff-reporting :8090), never to the
 // monolith directly. The shell's vite proxy routes /api/reporting/* to :8090;
@@ -22,17 +29,20 @@ const AUTH_EXPIRED_EVENT = "amp:auth-expired";
 const http = axios.create({
   baseURL: "/api/reporting",
   headers: { "Content-Type": "application/json" },
+  withCredentials: true,
 });
 
 installTelemetry(http);
 
+// Kept for parity with the other MFEs — reporting today is all GETs, but if
+// a future write endpoint lands on the BFF, the CSRF header is already wired.
 http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const method = (config.method ?? "get").toLowerCase();
+  if (SAFE_METHODS.has(method)) return config;
   const sdk = (window as unknown as { __AMP_PLATFORM__?: PlatformSdk })
     .__AMP_PLATFORM__;
-  const token = sdk?.getToken?.() ?? null;
-  if (token) {
-    config.headers.set("Authorization", `Bearer ${token}`);
-  }
+  const csrf = sdk?.csrfToken ?? null;
+  if (csrf) config.headers.set(CSRF_HEADER, csrf);
   return config;
 });
 

@@ -22,27 +22,34 @@ export type {
  * platform-shell/src/auth/platformSdk.ts). The MFE does not import shell code;
  * it reads the SDK off window at runtime. The shape is duplicated here
  * intentionally — one-line contract, zero build-time coupling.
+ *
+ * Access tokens live in an httpOnly cookie (invisible to JS). All we read
+ * from the SDK is the CSRF token we echo in the X-CSRF-Token header on
+ * state-changing requests; safe methods don't need it.
  */
 interface PlatformSdk {
-  getToken(): string | null;
+  csrfToken: string | null;
 }
 
 const AUTH_EXPIRED_EVENT = "amp:auth-expired";
+const CSRF_HEADER = "X-CSRF-Token";
+const SAFE_METHODS = new Set(["get", "head", "options"]);
 
 const http = axios.create({
   baseURL: "/api",
   headers: { "Content-Type": "application/json" },
+  withCredentials: true,
 });
 
 installTelemetry(http);
 
 http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const method = (config.method ?? "get").toLowerCase();
+  if (SAFE_METHODS.has(method)) return config;
   const sdk = (window as unknown as { __AMP_PLATFORM__?: PlatformSdk })
     .__AMP_PLATFORM__;
-  const token = sdk?.getToken?.() ?? null;
-  if (token) {
-    config.headers.set("Authorization", `Bearer ${token}`);
-  }
+  const csrf = sdk?.csrfToken ?? null;
+  if (csrf) config.headers.set(CSRF_HEADER, csrf);
   return config;
 });
 
