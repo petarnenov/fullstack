@@ -556,8 +556,15 @@ function WindowStateCard({ content, pulse }: { content: WindowSnapshot; pulse: n
   );
 }
 
+const HISTORY_LINE_H = 26;
+const HISTORY_PADDING_TOP = 38;
+const HISTORY_PADDING_BOTTOM = 16;
+const HISTORY_MAX_STEPS = 5;
+const HISTORY_BOX_H =
+  HISTORY_PADDING_TOP + HISTORY_LINE_H * HISTORY_MAX_STEPS + HISTORY_PADDING_BOTTOM;
+
 const FLY_BAND_TOP = LANE_Y_TOP + 64 + 268 + 10;       // below the WindowStateCard
-const FLY_BAND_BOTTOM = LANE_Y_BOTTOM - 160;           // above the HistoryLog
+const FLY_BAND_BOTTOM = LANE_Y_BOTTOM - HISTORY_BOX_H - 12;
 
 function FlyingArrow({ step }: { step: FlyingStep }) {
   const y0 = useMemo(() => FLY_BAND_TOP + Math.random() * Math.max(24, FLY_BAND_BOTTOM - FLY_BAND_TOP), []);
@@ -743,25 +750,20 @@ function CsrfBadge({ x, y }: { x: number; y: number }) {
 }
 
 function HistoryLog({ steps }: { steps: Step[] }) {
-  const LINE_H = 20;
-  const PADDING_TOP = 30;
-  const PADDING_BOTTOM = 14;
-  const MAX_STEPS = 5;
-  const boxH = PADDING_TOP + LINE_H * MAX_STEPS + PADDING_BOTTOM;
-  const baseY = LANE_Y_BOTTOM - boxH;
+  const baseY = LANE_Y_BOTTOM - HISTORY_BOX_H;
   return (
     <g>
-      <rect x={20} y={baseY} width={PANEL_W - 40} height={boxH} rx={8} fill="#0f172a" stroke="#1e293b" />
-      <text x={32} y={baseY + 18} fill="#64748b" fontSize={11} fontWeight={700} letterSpacing={2}>
+      <rect x={20} y={baseY} width={PANEL_W - 40} height={HISTORY_BOX_H} rx={8} fill="#0f172a" stroke="#1e293b" />
+      <text x={32} y={baseY + 22} fill="#64748b" fontSize={12} fontWeight={700} letterSpacing={2}>
         LAST STEPS
       </text>
-      {steps.slice(-MAX_STEPS).map((s, i) => (
+      {steps.slice(-HISTORY_MAX_STEPS).map((s, i) => (
         <text
           key={i}
           x={32}
-          y={baseY + PADDING_TOP + LINE_H * (i + 1) - 6}
+          y={baseY + HISTORY_PADDING_TOP + HISTORY_LINE_H * (i + 1) - 8}
           fill={s.color ?? "#94a3b8"}
-          fontSize={13}
+          fontSize={15}
           style={{ fontFamily: "ui-monospace, SFMono-Regular" }}
         >
           {s.from} → {s.to}  {s.label}
