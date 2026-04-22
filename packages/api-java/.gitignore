@@ -2,5 +2,6 @@ backend/.gradle/
 backend/build/
 backend/bin/
 backend/out/
+tomcat/
 *.class
 *.log

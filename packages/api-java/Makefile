@@ -1,12 +1,19 @@
-# Mirrors the ~/geo-mini Makefile: external Tomcat, catalina.sh, WAR deployed
-# to $(TOMCAT_HOME)/webapps/ROOT.war, CATALINA_OPTS carries -Dproject.root so
-# HibernateSessionFactory can find db_migrations/MIGRATIONS at runtime.
+# Same Tomcat flow as ~/geo-mini/Makefile — external Tomcat driven via
+# catalina.sh, WAR dropped as ROOT.war, CATALINA_OPTS carries -Dproject.root.
+#
+# Difference: we run in an isolated CATALINA_BASE rooted at $(TOMCAT_BASE)
+# so our port/config doesn't collide with whatever else is running on the
+# user's installed Tomcat. The base is seeded from $(TOMCAT_HOME)/conf/ on
+# first `make prepare` (or any target that depends on it), then server.xml
+# is rewritten with this project's port offsets.
 #
 # Override TOMCAT_HOME if your Tomcat lives elsewhere:
 #     make start TOMCAT_HOME=/home/petar/AppServer/apache-tomcat-9.0.38
 #
-# Port: whatever <TOMCAT_HOME>/conf/server.xml is configured for (8080 by
-# default). Make sure that port is free before `make start`.
+# Ports (committed in this project's generated server.xml):
+#   HTTP     = 8088  (app endpoints — frontend proxies here)
+#   Shutdown = 8085
+#   AJP      = 8089  (usually unused; kept offset to avoid conflicts)
 
 UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S),Darwin)
@@ -14,19 +21,62 @@ TOMCAT_HOME = /opt/homebrew/opt/tomcat@9/libexec
 else
 TOMCAT_HOME = /opt/tomcat
 endif
+
 PROJECT_DIR = $(shell pwd)
+TOMCAT_BASE = $(PROJECT_DIR)/tomcat
 WAR_FILE    = $(PROJECT_DIR)/backend/build/libs/amp-api-java.war
 
+HTTP_PORT     = 8088
+SHUTDOWN_PORT = 8085
+AJP_PORT      = 8089
+
+export CATALINA_BASE = $(TOMCAT_BASE)
+export CATALINA_PID  = $(TOMCAT_BASE)/tomcat.pid
 export CATALINA_OPTS = -Dproject.root=$(PROJECT_DIR)
+
+# -------------------------------------------------------------------------
+# One-time CATALINA_BASE setup. Copies the minimal conf/ tree from
+# $(TOMCAT_HOME), then rewrites server.xml to use our ports.
+# -------------------------------------------------------------------------
+
+.PHONY: prepare
+prepare: $(TOMCAT_BASE)/conf/server.xml
+
+$(TOMCAT_BASE)/conf/server.xml:
+	@if [ ! -d $(TOMCAT_HOME)/conf ]; then \
+		echo "ERROR: $(TOMCAT_HOME)/conf not found. Set TOMCAT_HOME to a Tomcat 9 install."; \
+		exit 1; \
+	fi
+	@echo "Seeding CATALINA_BASE at $(TOMCAT_BASE) from $(TOMCAT_HOME)..."
+	@mkdir -p $(TOMCAT_BASE)/conf $(TOMCAT_BASE)/webapps $(TOMCAT_BASE)/logs $(TOMCAT_BASE)/temp $(TOMCAT_BASE)/work
+	@cp -r $(TOMCAT_HOME)/conf/. $(TOMCAT_BASE)/conf/
+	@sed -i.bak \
+		-e 's|<Server port="8005"|<Server port="$(SHUTDOWN_PORT)"|' \
+		-e 's|<Connector port="8080"|<Connector port="$(HTTP_PORT)"|' \
+		-e 's|<Connector port="8009"|<Connector port="$(AJP_PORT)"|' \
+		$(TOMCAT_BASE)/conf/server.xml
+	@rm -f $(TOMCAT_BASE)/conf/server.xml.bak
+	@echo "Ports in $(TOMCAT_BASE)/conf/server.xml:"
+	@grep -E 'Server port=|Connector port=' $(TOMCAT_BASE)/conf/server.xml | head -5 || true
+
+# Re-seed from a fresh $(TOMCAT_HOME) (run after switching Tomcat versions).
+.PHONY: reset-base
+reset-base:
+	rm -rf $(TOMCAT_BASE)
+	$(MAKE) prepare
+
+# -------------------------------------------------------------------------
+# Build / deploy / lifecycle
+# -------------------------------------------------------------------------
 
 .PHONY: build
 build:
 	cd backend && ./gradlew war
 
 .PHONY: deploy
-deploy: build
-	rm -rf $(TOMCAT_HOME)/webapps/ROOT $(TOMCAT_HOME)/webapps/ROOT.war
-	cp $(WAR_FILE) $(TOMCAT_HOME)/webapps/ROOT.war
+deploy: prepare build
+	rm -rf $(TOMCAT_BASE)/webapps/ROOT $(TOMCAT_BASE)/webapps/ROOT.war
+	cp $(WAR_FILE) $(TOMCAT_BASE)/webapps/ROOT.war
 
 .PHONY: redeploy
 redeploy: deploy
@@ -34,14 +84,26 @@ redeploy: deploy
 
 .PHONY: start
 start: deploy
-	@echo "Starting Tomcat from $(TOMCAT_HOME) (Ctrl+C to stop)..."
+	@echo "Starting Tomcat on :$(HTTP_PORT) (CATALINA_BASE=$(TOMCAT_BASE), Ctrl+C to stop)..."
 	@trap 'kill 0' EXIT; \
 		$(TOMCAT_HOME)/bin/catalina.sh run & \
 		wait
 
 .PHONY: stop
 stop:
-	$(TOMCAT_HOME)/bin/catalina.sh stop 2>/dev/null || true
+	@# First try the shutdown-port path (works when Tomcat was started as `start`/daemon).
+	@$(TOMCAT_HOME)/bin/catalina.sh stop -force >/dev/null 2>&1 || true
+	@rm -f $(CATALINA_PID)
+	@# Fallback: kill whatever still listens on our HTTP port (covers `catalina.sh run`,
+	@# which runs Tomcat in the foreground and never writes a PID file).
+	@PIDS=$$(lsof -ti :$(HTTP_PORT) 2>/dev/null); \
+		if [ -n "$$PIDS" ]; then \
+			echo "Killing PID(s) on :$(HTTP_PORT): $$PIDS"; \
+			kill $$PIDS 2>/dev/null || true; \
+			sleep 1; \
+			PIDS2=$$(lsof -ti :$(HTTP_PORT) 2>/dev/null); \
+			[ -n "$$PIDS2" ] && kill -9 $$PIDS2 2>/dev/null || true; \
+		fi
 
 .PHONY: restart
 restart: stop
@@ -54,7 +116,7 @@ restart: stop
 # db_migrations/. Requires `fswatch` on your PATH.
 .PHONY: dev
 dev: deploy
-	@echo "Dev mode: Tomcat + fswatch rebuild loop (Ctrl+C to stop)..."
+	@echo "Dev mode: Tomcat :$(HTTP_PORT) + fswatch rebuild loop (Ctrl+C to stop)..."
 	@trap 'kill 0' EXIT; \
 	$(TOMCAT_HOME)/bin/catalina.sh run & \
 	TOMCAT_PID=$$!; \
@@ -63,8 +125,8 @@ dev: deploy
 		kill $$TOMCAT_PID 2>/dev/null; wait $$TOMCAT_PID 2>/dev/null; \
 		sleep 2; \
 		(cd $(PROJECT_DIR)/backend && ./gradlew war -q) && \
-		rm -rf $(TOMCAT_HOME)/webapps/ROOT $(TOMCAT_HOME)/webapps/ROOT.war && \
-		cp $(WAR_FILE) $(TOMCAT_HOME)/webapps/ROOT.war && \
+		rm -rf $(TOMCAT_BASE)/webapps/ROOT $(TOMCAT_BASE)/webapps/ROOT.war && \
+		cp $(WAR_FILE) $(TOMCAT_BASE)/webapps/ROOT.war && \
 		$(TOMCAT_HOME)/bin/catalina.sh run & \
 		TOMCAT_PID=$$!; \
 		echo "[watch] Tomcat restarted (PID $$TOMCAT_PID)."; \
@@ -74,23 +136,29 @@ dev: deploy
 # Debug mode: Tomcat in JPDA mode on port 5005 (attach from IDE).
 .PHONY: debug
 debug: deploy
-	@echo "Debug mode: Tomcat with JDWP on port 5005..."
+	@echo "Debug mode: Tomcat on :$(HTTP_PORT), JDWP on :5005..."
 	JPDA_ADDRESS=5005 JPDA_TRANSPORT=dt_socket $(TOMCAT_HOME)/bin/catalina.sh jpda run
 
 .PHONY: help
 help:
 	@echo "Targets:"
+	@echo "  prepare    — seed CATALINA_BASE ($(TOMCAT_BASE)) from \$$TOMCAT_HOME"
+	@echo "  reset-base — wipe and re-seed CATALINA_BASE"
 	@echo "  build      — build backend WAR"
-	@echo "  deploy     — build + copy WAR to \$$TOMCAT_HOME/webapps/ROOT.war"
-	@echo "  redeploy   — deploy (for a running Tomcat to auto-reload)"
-	@echo "  start      — deploy + catalina.sh run (foreground)"
+	@echo "  deploy     — prepare + build + copy WAR to \$$CATALINA_BASE/webapps/ROOT.war"
+	@echo "  redeploy   — deploy (running Tomcat will auto-reload)"
+	@echo "  start      — deploy + catalina.sh run (foreground, :$(HTTP_PORT))"
 	@echo "  stop       — catalina.sh stop"
 	@echo "  restart    — stop + start"
 	@echo "  dev        — deploy + fswatch auto-rebuild loop"
-	@echo "  debug      — deploy + catalina.sh jpda run (debug port 5005)"
+	@echo "  debug      — deploy + catalina.sh jpda run (debug on :5005)"
 	@echo ""
 	@echo "Env:"
-	@echo "  TOMCAT_HOME     = $(TOMCAT_HOME)"
-	@echo "  PROJECT_DIR     = $(PROJECT_DIR)"
-	@echo "  WAR_FILE        = $(WAR_FILE)"
-	@echo "  CATALINA_OPTS   = $(CATALINA_OPTS)"
+	@echo "  TOMCAT_HOME    = $(TOMCAT_HOME)"
+	@echo "  CATALINA_BASE  = $(TOMCAT_BASE)"
+	@echo "  PROJECT_DIR    = $(PROJECT_DIR)"
+	@echo "  WAR_FILE       = $(WAR_FILE)"
+	@echo "  HTTP_PORT      = $(HTTP_PORT)"
+	@echo "  SHUTDOWN_PORT  = $(SHUTDOWN_PORT)"
+	@echo "  AJP_PORT       = $(AJP_PORT)"
+	@echo "  CATALINA_OPTS  = $(CATALINA_OPTS)"
