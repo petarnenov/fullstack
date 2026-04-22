@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 6.0//EN"
+    "https://struts.apache.org/dtds/struts-6.0.dtd">
+<struts>
+    <!--
+        URL patterns (mirroring packages/api/src/domains/accounts/accounts.router.ts):
+          GET  /api/accounts                  -> default-action-ref "index" = ListOrCreate
+          POST /api/accounts                  -> same action (branches on HTTP method)
+          GET  /api/accounts/progress         -> progress
+          GET  /api/accounts/{id}             -> wildcard *
+          POST /api/accounts/{id}/advance     -> wildcard */advance
+
+        `default-action-ref` fires when the URL resolves to this namespace with
+        an empty action name (i.e. bare `/api/accounts`), before Struts tries
+        the wildcard `*` — otherwise `*` would capture the empty string and
+        dispatch to GetAccountAction with an empty id.
+    -->
+    <package name="accounts" extends="default-package" namespace="/api/accounts">
+        <default-action-ref name="index" />
+
+        <action name="index" class="com.amp.web.accounts.ListOrCreateAccountsAction">
+            <result name="success" type="jsonResult" />
+        </action>
+        <action name="progress" class="com.amp.web.accounts.ProgressAction">
+            <result name="success" type="jsonResult" />
+        </action>
+        <action name="*/advance" class="com.amp.web.accounts.AdvanceStepAction">
+            <param name="accountId">{1}</param>
+            <result name="success" type="jsonResult" />
+        </action>
+        <action name="*" class="com.amp.web.accounts.GetAccountAction">
+            <param name="accountId">{1}</param>
+            <result name="success" type="jsonResult" />
+        </action>
+    </package>
+</struts>

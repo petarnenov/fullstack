@@ -5,7 +5,10 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.amp.agent.accounts.AccountsTrait;
 import com.amp.agent.auth.AuthTrait;
+import com.amp.agent.billing.BillingTrait;
+import com.amp.agent.trading.TradingTrait;
 
 import akka.actor.ActorRef;
 import atomatron.worker.agent.Agent;
@@ -33,6 +36,15 @@ public class AgentSystem {
 
         AuthTrait authTrait = new AuthTrait();
         createAgent("AuthManager", List.of(authTrait));
+
+        BillingTrait billingTrait = new BillingTrait();
+        createAgent("BillingManager", List.of(billingTrait));
+
+        AccountsTrait accountsTrait = new AccountsTrait();
+        createAgent("AccountsManager", List.of(accountsTrait));
+
+        TradingTrait tradingTrait = new TradingTrait();
+        createAgent("TradingManager", List.of(tradingTrait));
 
         log.info("All agents created successfully.");
     }

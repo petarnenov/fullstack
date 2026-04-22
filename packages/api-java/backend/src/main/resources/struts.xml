@@ -7,11 +7,31 @@
     <constant name="struts.devMode" value="true" />
     <constant name="struts.action.excludePattern" value="/h2-console.*" />
 
+    <!-- Default ActionMapper splits the URL at the LAST slash, which breaks
+         multi-segment wildcard actions like `invoices/*` and `invoices/*/pay`.
+         This custom mapper finds the longest declared namespace and uses the
+         full tail as the action name. -->
+    <bean type="org.apache.struts2.dispatcher.mapper.ActionMapper"
+          name="multiSegment"
+          class="com.amp.web.common.MultiSegmentActionMapper" />
+    <constant name="struts.mapper.class" value="multiSegment" />
+
     <package name="default-package" extends="struts-default">
         <result-types>
             <result-type name="jsonResult" class="com.amp.web.common.JsonResult" />
         </result-types>
+        <!-- Global fallback for the `input` result. Struts' validation /
+             conversion interceptors short-circuit to `input` before execute()
+             runs when they detect binding issues on action fields — we map it
+             to the same JSON writer so the action's `response` (typically an
+             error JTO or empty string) still reaches the client. -->
+        <global-results>
+            <result name="input" type="jsonResult" />
+        </global-results>
     </package>
 
     <include file="struts-auth.xml" />
+    <include file="struts-billing.xml" />
+    <include file="struts-accounts.xml" />
+    <include file="struts-trading.xml" />
 </struts>
