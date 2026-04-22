@@ -4,12 +4,12 @@ import atomatron.worker.agent.message.Message;
 import com.amp.agent.GeowealthBasicManagerTrait;
 import com.amp.service.Response;
 import com.amp.service.auth.DemoCredentialsMsg;
+import com.amp.service.auth.IssuedSession;
 import com.amp.service.auth.LoginMsg;
 import com.amp.service.auth.LogoutMsg;
 import com.amp.service.auth.MeMsg;
+import com.amp.service.auth.RefreshMsg;
 import com.amp.util.hibernate.HibernateSessionFactory;
-import com.amp.util.jsontransfer.AuthenticatedUserJTO;
-import com.amp.util.jsontransfer.LoginResponseJTO;
 import com.netfolio.agent.RetryReaction;
 
 public class AuthTrait extends GeowealthBasicManagerTrait {
@@ -22,14 +22,28 @@ public class AuthTrait extends GeowealthBasicManagerTrait {
             public void react(Message aMessage) throws Throwable {
                 LoginMsg msg = (LoginMsg) aMessage;
                 try {
-                    Response response = new Response();
-                    LoginResponseJTO result = AuthProcess.login(msg.getEmail(), msg.getPassword());
+                    IssuedSession result = AuthProcess.login(msg.getEmail(), msg.getPassword());
                     if (result == null) {
                         msg.setInvalidCredentials(true);
                     } else {
                         msg.setResult(result);
                     }
-                    msg.setResponse(response);
+                    msg.setResponse(new Response());
+                } catch (Exception ex) {
+                    logAndThrow(ex, msg);
+                } finally {
+                    HibernateSessionFactory.closeSession();
+                }
+            }
+        });
+
+        when(RefreshMsg.class, new RetryReaction() {
+            @Override
+            public void react(Message aMessage) throws Throwable {
+                RefreshMsg msg = (RefreshMsg) aMessage;
+                try {
+                    msg.setResult(AuthProcess.rotate(msg.getRefreshToken()));
+                    msg.setResponse(new Response());
                 } catch (Exception ex) {
                     logAndThrow(ex, msg);
                 } finally {
@@ -43,7 +57,7 @@ public class AuthTrait extends GeowealthBasicManagerTrait {
             public void react(Message aMessage) throws Throwable {
                 LogoutMsg msg = (LogoutMsg) aMessage;
                 try {
-                    AuthProcess.logout(msg.getToken());
+                    AuthProcess.revokeFamilyByRefreshToken(msg.getRefreshToken());
                     msg.setResponse(new Response());
                 } catch (Exception ex) {
                     logAndThrow(ex, msg);
@@ -58,8 +72,11 @@ public class AuthTrait extends GeowealthBasicManagerTrait {
             public void react(Message aMessage) throws Throwable {
                 MeMsg msg = (MeMsg) aMessage;
                 try {
-                    AuthenticatedUserJTO user = AuthProcess.findUserByToken(msg.getToken());
-                    msg.setUser(user);
+                    AuthProcess.SessionLookup lookup = AuthProcess.lookupSession(msg.getAccessToken());
+                    if (lookup != null) {
+                        msg.setUser(lookup.user);
+                        msg.setCsrfToken(lookup.csrfToken);
+                    }
                     msg.setResponse(new Response());
                 } catch (Exception ex) {
                     logAndThrow(ex, msg);

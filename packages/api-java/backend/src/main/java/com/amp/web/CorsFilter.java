@@ -18,10 +18,14 @@ public class CorsFilter implements Filter {
 
         String origin = request.getHeader("Origin");
         if (origin != null) {
+            // Reflect origin explicitly — Allow-Credentials rules out wildcard.
+            // Vary: Origin so caches don't serve one origin's response to another.
             response.setHeader("Access-Control-Allow-Origin", origin);
+            response.setHeader("Vary", "Origin");
             response.setHeader("Access-Control-Allow-Credentials", "true");
-            response.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-            response.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization,X-Requested-With,accept,Origin");
+            response.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
+            response.setHeader("Access-Control-Allow-Headers",
+                    "Content-Type,Authorization,X-Requested-With,X-CSRF-Token,accept,Origin");
             response.setHeader("Access-Control-Max-Age", "3600");
         }
 

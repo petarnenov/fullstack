@@ -7,14 +7,16 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class LogoutMsg extends Message {
+public class RefreshMsg extends Message {
     private static final long serialVersionUID = 1L;
 
-    /** Refresh cookie value — revoking it kills the whole session family. */
+    /** The refresh cookie value presented by the browser. */
     private final String refreshToken;
     private Response response;
+    /** Null when the refresh token is unknown, revoked or expired. */
+    private IssuedSession result;
 
-    public LogoutMsg(String refreshToken) {
+    public RefreshMsg(String refreshToken) {
         this.refreshToken = refreshToken;
     }
 }

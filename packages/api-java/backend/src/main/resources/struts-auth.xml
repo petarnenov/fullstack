@@ -7,6 +7,9 @@
         <action name="login" class="com.amp.web.auth.LoginAction">
             <result name="success" type="jsonResult" />
         </action>
+        <action name="refresh" class="com.amp.web.auth.RefreshAction">
+            <result name="success" type="jsonResult" />
+        </action>
         <action name="logout" class="com.amp.web.auth.LogoutAction">
             <result name="success" type="jsonResult" />
         </action>

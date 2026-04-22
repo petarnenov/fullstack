@@ -15,5 +15,6 @@
 
         <mapping class="com.amp.model.UserTbl" />
         <mapping class="com.amp.model.UserSessionTbl" />
+        <mapping class="com.amp.model.RefreshTokenTbl" />
     </session-factory>
 </hibernate-configuration>

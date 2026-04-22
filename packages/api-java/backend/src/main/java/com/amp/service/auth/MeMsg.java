@@ -11,11 +11,13 @@ import lombok.Setter;
 public class MeMsg extends Message {
     private static final long serialVersionUID = 1L;
 
-    private final String token;
+    /** Access cookie value. */
+    private final String accessToken;
     private Response response;
     private AuthenticatedUserJTO user;
+    private String csrfToken;
 
-    public MeMsg(String token) {
-        this.token = token;
+    public MeMsg(String accessToken) {
+        this.accessToken = accessToken;
     }
 }

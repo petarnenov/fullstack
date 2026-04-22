@@ -45,6 +45,9 @@ dependencies {
     // Flyway
     implementation("org.flywaydb:flyway-core:11.9.1")
 
+    // Argon2id for password hashing (pure-Java fallback included — no JNI at runtime).
+    implementation("de.mkammerer:argon2-jvm:2.11")
+
     // Gson, Lombok, Logging, Config
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("com.typesafe:config:1.4.2")

@@ -1,10 +1,13 @@
 package com.amp.web.auth;
 
 import com.amp.service.auth.AuthManager;
+import com.amp.service.auth.IssuedSession;
 import com.amp.util.jsontransfer.LoginRequestJTO;
 import com.amp.util.jsontransfer.LoginResponseJTO;
+import com.amp.web.common.SessionCookies;
 import com.amp.web.common.action.BasicJsonResponseAction;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.struts2.ServletActionContext;
 
 @Slf4j
 public class LoginAction extends BasicJsonResponseAction {
@@ -17,10 +20,14 @@ public class LoginAction extends BasicJsonResponseAction {
         }
 
         try {
-            LoginResponseJTO result = AuthManager.getSole().login(body.getEmail(), body.getPassword());
-            if (result == null) {
+            IssuedSession session = AuthManager.getSole().login(body.getEmail(), body.getPassword());
+            if (session == null) {
                 return error(401, "Invalid email or password");
             }
+            SessionCookies.setSessionCookies(ServletActionContext.getResponse(), session);
+            LoginResponseJTO result = new LoginResponseJTO();
+            result.setCsrfToken(session.getCsrfToken());
+            result.setUser(session.getUser());
             return json(result);
         } catch (Exception e) {
             log.error("Login failed", e);

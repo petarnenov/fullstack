@@ -10,10 +10,10 @@ import javax.persistence.Table;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_session_tbl")
+@Table(name = "refresh_token_tbl")
 @Getter
 @Setter
-public class UserSessionTbl {
+public class RefreshTokenTbl {
     @Id
     @Column(name = "token", nullable = false)
     private String token;
@@ -21,14 +21,14 @@ public class UserSessionTbl {
     @Column(name = "user_id", nullable = false)
     private String userId;
 
-    @Column(name = "csrf_token")
-    private String csrfToken;
-
-    @Column(name = "family_id")
+    @Column(name = "family_id", nullable = false)
     private String familyId;
 
-    @Column(name = "expires_at")
+    @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
+
+    @Column(name = "revoked", nullable = false)
+    private boolean revoked;
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
