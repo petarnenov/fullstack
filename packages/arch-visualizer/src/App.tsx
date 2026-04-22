@@ -5,7 +5,10 @@ import { ParticleLayer } from "./particles/ParticleLayer";
 import { Stats } from "./hud/Stats";
 import { Storyline } from "./hud/Storyline";
 import { Controls } from "./hud/Controls";
+import { TokenFlowPanel } from "./auth/TokenFlowPanel";
 import { TEAM_COLORS } from "./topology/topologyDef";
+
+const TOKEN_PANEL_W = 440;
 
 export default function App() {
   useEventStream();
@@ -13,13 +16,16 @@ export default function App() {
 
   return (
     <div style={{ width: "100vw", height: "100vh", overflow: "hidden", background: "#020617", position: "relative" }}>
-      <Topology>
-        <ParticleLayer />
-      </Topology>
-      <Controls />
-      <Stats />
-      <Storyline />
-      <Legend />
+      <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: TOKEN_PANEL_W }}>
+        <Topology>
+          <ParticleLayer />
+        </Topology>
+        <Controls />
+        <Stats />
+        <Storyline />
+        <Legend />
+      </div>
+      <TokenFlowPanel />
     </div>
   );
 }
