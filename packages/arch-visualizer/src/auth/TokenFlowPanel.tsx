@@ -38,14 +38,14 @@ interface Scenario {
   totalMs: number;
 }
 
-const LANE_W = 120;
-const LANE_GAP = 0;
+const LANE_W = 88;
+const LANE_GAP = 8;
+const LANE_X0 = 32;
 const PANEL_W = 440;
 const PANEL_H = 1100;
 const HEADER_H = 180;
 const LANE_Y_TOP = HEADER_H + 40;
 const LANE_Y_BOTTOM = PANEL_H - 40;
-const WINDOW_Y = HEADER_H - 16; // where the window.__AMP_PLATFORM__ badge sits
 const STEP_COLOR_HTTP = "#60a5fa";
 const STEP_COLOR_SDK = "#a855f7";
 const STEP_COLOR_TOKEN = "#eab308";
@@ -53,10 +53,10 @@ const STEP_COLOR_ERR = "#f87171";
 const STEP_COLOR_OK = "#22c55e";
 
 const LANES: Lane[] = [
-  { id: "fe", label: "FE", sub: "platform-shell + MFEs", x: 40 },
-  { id: "win", label: "window", sub: "__AMP_PLATFORM__", x: 40 + (LANE_W + LANE_GAP) * 1 },
-  { id: "bff", label: "BFF", sub: "bff-reporting", x: 40 + (LANE_W + LANE_GAP) * 2 },
-  { id: "be", label: "BE", sub: "api-java:auth", x: 40 + (LANE_W + LANE_GAP) * 3 },
+  { id: "fe", label: "FE", sub: "shell + MFEs", x: LANE_X0 },
+  { id: "win", label: "window", sub: "getToken()", x: LANE_X0 + (LANE_W + LANE_GAP) * 1 },
+  { id: "bff", label: "BFF", sub: "bff-reporting", x: LANE_X0 + (LANE_W + LANE_GAP) * 2 },
+  { id: "be", label: "BE", sub: "api-java:auth", x: LANE_X0 + (LANE_W + LANE_GAP) * 3 },
 ];
 
 const LANE_BY_ID: Record<string, Lane> = Object.fromEntries(LANES.map((l) => [l.id, l]));
@@ -246,9 +246,6 @@ export function TokenFlowPanel() {
           </linearGradient>
         </defs>
 
-        {/* Window badge, pinned above the lanes */}
-        <WindowBadge />
-
         {/* Lanes */}
         {LANES.map((lane) => (
           <LaneColumn key={lane.id} lane={lane} />
@@ -268,34 +265,12 @@ export function TokenFlowPanel() {
   );
 }
 
-function WindowBadge() {
-  const lane = LANE_BY_ID.win;
-  if (!lane) return null;
-  const cx = lane.x + LANE_W / 2;
-  return (
-    <g>
-      <rect
-        x={lane.x + 8}
-        y={WINDOW_Y - 22}
-        width={LANE_W - 16}
-        height={32}
-        rx={8}
-        fill="#1e1b4b"
-        stroke="#a855f7"
-        strokeDasharray="3 3"
-      />
-      <text x={cx} y={WINDOW_Y - 8} textAnchor="middle" fill="#c4b5fd" fontSize={10} fontWeight={700} style={{ fontFamily: "ui-monospace, SFMono-Regular" }}>
-        window
-      </text>
-      <text x={cx} y={WINDOW_Y + 5} textAnchor="middle" fill="#a855f7" fontSize={9} style={{ fontFamily: "ui-monospace, SFMono-Regular" }}>
-        __AMP_PLATFORM__
-      </text>
-    </g>
-  );
-}
-
 function LaneColumn({ lane }: { lane: Lane }) {
   const cx = lane.x + LANE_W / 2;
+  const isWindow = lane.id === "win";
+  const stroke = isWindow ? "#a855f7" : "#334155";
+  const labelColor = isWindow ? "#c4b5fd" : "#e2e8f0";
+  const subColor = isWindow ? "#a855f7" : "#94a3b8";
   return (
     <g>
       <rect
@@ -315,15 +290,16 @@ function LaneColumn({ lane }: { lane: Lane }) {
         width={LANE_W}
         height={52}
         rx={12}
-        fill="#0f172a"
-        stroke="#334155"
+        fill={isWindow ? "#1e1b4b" : "#0f172a"}
+        stroke={stroke}
         strokeWidth={1}
+        strokeDasharray={isWindow ? "3 3" : undefined}
       />
-      <text x={cx} y={LANE_Y_TOP + 22} textAnchor="middle" fill="#e2e8f0" fontSize={13} fontWeight={700}>
+      <text x={cx} y={LANE_Y_TOP + 22} textAnchor="middle" fill={labelColor} fontSize={13} fontWeight={700}>
         {lane.label}
       </text>
       {lane.sub && (
-        <text x={cx} y={LANE_Y_TOP + 38} textAnchor="middle" fill="#94a3b8" fontSize={9} style={{ fontFamily: "ui-monospace, SFMono-Regular" }}>
+        <text x={cx} y={LANE_Y_TOP + 38} textAnchor="middle" fill={subColor} fontSize={9} style={{ fontFamily: "ui-monospace, SFMono-Regular" }}>
           {lane.sub}
         </text>
       )}
