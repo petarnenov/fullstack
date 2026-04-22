@@ -14,30 +14,15 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, REPO_ROOT, "");
   const PUBLIC_HOST = env.PUBLIC_HOST || "localhost";
 
-  // When TOMCAT_HOME is set in .env, packages/api-java's Tomcat is expected
-  // on :8088 and owns /api/auth/*. Everything else still routes to the Node
-  // API on :3000 until those domains get ported. If TOMCAT_HOME is unset,
-  // all /api/* goes to Node (the Java tier is turned off in
-  // scripts/dev-api-java.sh too, so the two sides stay consistent).
-  const JAVA_AUTH_ENABLED = Boolean(env.TOMCAT_HOME);
-  const apiProxy: Record<string, { target: string; changeOrigin: boolean }> =
-    JAVA_AUTH_ENABLED
-      ? {
-          "/api/auth": {
-            target: "http://localhost:8088",
-            changeOrigin: true,
-          },
-          "/api": {
-            target: "http://localhost:3000",
-            changeOrigin: true,
-          },
-        }
-      : {
-          "/api": {
-            target: "http://localhost:3000",
-            changeOrigin: true,
-          },
-        };
+  // On this branch the Java tier (packages/api-java, Tomcat :8088) is the
+  // only backend — the Node Express API is not started. All /api/* traffic
+  // lands on Tomcat; domains Java doesn't serve yet will 404.
+  const apiProxy = {
+    "/api": {
+      target: "http://localhost:8088",
+      changeOrigin: true,
+    },
+  };
 
   return {
     plugins: [
