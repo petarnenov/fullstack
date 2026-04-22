@@ -27,9 +27,9 @@ public class ReportAggregator {
         this.monolith = monolith;
     }
 
-    public Mono<List<AccountReport>> summarise(String authHeader) {
-        Mono<List<Account>> accounts = monolith.listAccounts(authHeader);
-        Mono<List<Invoice>> invoices = monolith.listInvoices(authHeader);
+    public Mono<List<AccountReport>> summarise(String cookieHeader) {
+        Mono<List<Account>> accounts = monolith.listAccounts(cookieHeader);
+        Mono<List<Invoice>> invoices = monolith.listInvoices(cookieHeader);
 
         return Mono.zip(accounts, invoices)
             .flatMap(tuple -> {
@@ -38,7 +38,7 @@ public class ReportAggregator {
                     .collect(Collectors.groupingBy(Invoice::accountId));
 
                 return Flux.fromIterable(acc)
-                    .flatMap(a -> monolith.getPortfolio(a.id(), authHeader)
+                    .flatMap(a -> monolith.getPortfolio(a.id(), cookieHeader)
                         // If trading doesn't know this account yet, fall back to
                         // an empty portfolio rather than failing the whole report.
                         .onErrorReturn(emptyPortfolio(a.id()))

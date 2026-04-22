@@ -12,10 +12,13 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 /**
- * All outbound HTTP from the BFF to the monolith. The Authorization header
- * received from the browser is forwarded verbatim so the monolith performs the
- * actual token check — the BFF intentionally does not re-validate tokens, to
- * avoid duplicating auth logic (see CLAUDE.md constraint #6).
+ * All outbound HTTP from the BFF to the monolith. Since Phase 1 of the
+ * production-auth cut-over, the session is carried in httpOnly cookies —
+ * the browser attaches {@code amp_access_token} to every call to the BFF,
+ * and we forward the whole Cookie header verbatim so the monolith's
+ * {@code AuthenticatedJsonAction} sees the same session it would have seen
+ * if the MFE had called it directly. The BFF still does no token validation
+ * of its own (see CLAUDE.md constraint #6).
  */
 @Component
 public class MonolithClient {
@@ -29,35 +32,35 @@ public class MonolithClient {
         this.client = builder.baseUrl(baseUrl).build();
     }
 
-    public Mono<List<Account>> listAccounts(String authHeader) {
+    public Mono<List<Account>> listAccounts(String cookieHeader) {
         return client.get()
             .uri("/api/accounts")
-            .headers(h -> forwardAuth(h, authHeader))
+            .headers(h -> forwardCookie(h, cookieHeader))
             .retrieve()
             .bodyToMono(new ParameterizedTypeReference<List<Account>>() {});
     }
 
-    public Mono<List<Invoice>> listInvoices(String authHeader) {
+    public Mono<List<Invoice>> listInvoices(String cookieHeader) {
         return client.get()
             .uri("/api/billing/invoices")
-            .headers(h -> forwardAuth(h, authHeader))
+            .headers(h -> forwardCookie(h, cookieHeader))
             .retrieve()
             .bodyToMono(new ParameterizedTypeReference<List<Invoice>>() {});
     }
 
-    public Mono<PortfolioSummary> getPortfolio(String accountId, String authHeader) {
+    public Mono<PortfolioSummary> getPortfolio(String accountId, String cookieHeader) {
         return client.get()
             .uri(uri -> uri.path("/api/trading/portfolio")
                 .queryParam("accountId", accountId)
                 .build())
-            .headers(h -> forwardAuth(h, authHeader))
+            .headers(h -> forwardCookie(h, cookieHeader))
             .retrieve()
             .bodyToMono(PortfolioSummary.class);
     }
 
-    private static void forwardAuth(HttpHeaders headers, String authHeader) {
-        if (authHeader != null && !authHeader.isBlank()) {
-            headers.set(HttpHeaders.AUTHORIZATION, authHeader);
+    private static void forwardCookie(HttpHeaders headers, String cookieHeader) {
+        if (cookieHeader != null && !cookieHeader.isBlank()) {
+            headers.set(HttpHeaders.COOKIE, cookieHeader);
         }
     }
 }

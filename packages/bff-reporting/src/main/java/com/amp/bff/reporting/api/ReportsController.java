@@ -22,8 +22,8 @@ public class ReportsController {
 
     @GetMapping("/summary")
     public Mono<List<AccountReport>> summary(
-        @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader
+        @RequestHeader(value = HttpHeaders.COOKIE, required = false) String cookieHeader
     ) {
-        return aggregator.summarise(authHeader);
+        return aggregator.summarise(cookieHeader);
     }
 }
