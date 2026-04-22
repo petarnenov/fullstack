@@ -9,6 +9,7 @@ import type {
   TradingAccountView,
   TradingSymbol,
 } from "./generated/data-contracts";
+import { installTelemetry } from "./telemetry";
 
 export type {
   CashBalance,
@@ -39,6 +40,8 @@ const http = axios.create({
   baseURL: "/api",
   headers: { "Content-Type": "application/json" },
 });
+
+installTelemetry(http);
 
 http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const sdk = (window as unknown as { __AMP_PLATFORM__?: PlatformSdk })

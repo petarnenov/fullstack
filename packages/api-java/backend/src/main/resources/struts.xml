@@ -20,6 +20,22 @@
         <result-types>
             <result-type name="jsonResult" class="com.amp.web.common.JsonResult" />
         </result-types>
+
+        <!-- Wraps every action with architecture-visualiser telemetry. The
+             interceptor runs first (outermost), so it captures total end-to-end
+             time including validation/conversion, and its finally block always
+             emits a response event even if an inner interceptor aborts. All
+             four domain packages inherit this via `extends="default-package"`,
+             so no per-package wiring is required. -->
+        <interceptors>
+            <interceptor name="telemetry" class="com.amp.web.common.TelemetryInterceptor" />
+            <interceptor-stack name="telemetryStack">
+                <interceptor-ref name="telemetry" />
+                <interceptor-ref name="defaultStack" />
+            </interceptor-stack>
+        </interceptors>
+        <default-interceptor-ref name="telemetryStack" />
+
         <!-- Global fallback for the `input` result. Struts' validation /
              conversion interceptors short-circuit to `input` before execute()
              runs when they detect binding issues on action fields — we map it

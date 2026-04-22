@@ -1,5 +1,6 @@
 import axios, { type InternalAxiosRequestConfig } from "axios";
 import type { AccountReport } from "./generated/data-contracts";
+import { installTelemetry } from "./telemetry";
 
 export type { AccountReport } from "./generated/data-contracts";
 
@@ -22,6 +23,8 @@ const http = axios.create({
   baseURL: "/api/reporting",
   headers: { "Content-Type": "application/json" },
 });
+
+installTelemetry(http);
 
 http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const sdk = (window as unknown as { __AMP_PLATFORM__?: PlatformSdk })

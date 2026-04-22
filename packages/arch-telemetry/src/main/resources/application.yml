@@ -1,0 +1,23 @@
+server:
+  port: 8091
+  # SSE connections are long-lived; large keep-alive buffer.
+  tomcat:
+    connection-timeout: 600000
+
+spring:
+  application:
+    name: arch-telemetry
+  mvc:
+    async:
+      # SSE emitters block on the async dispatcher; default 30s would close
+      # idle visualiser clients. Long-poll-friendly timeout.
+      request-timeout: 3600000
+
+amp:
+  telemetry:
+    ring-buffer-size: 1000
+
+logging:
+  level:
+    root: WARN
+    com.amp.arch.telemetry: INFO

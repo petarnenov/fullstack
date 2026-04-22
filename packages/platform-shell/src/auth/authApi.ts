@@ -5,6 +5,7 @@ import type {
   LoginRequest,
   LoginResponse,
 } from "../api/generated/data-contracts";
+import { installTelemetry } from "./telemetry";
 
 export type { AuthenticatedUser, DemoCredential, LoginRequest, LoginResponse };
 
@@ -12,6 +13,8 @@ const http = axios.create({
   baseURL: "/api/auth",
   headers: { "Content-Type": "application/json" },
 });
+
+installTelemetry(http);
 
 export const authApi = {
   login: (body: LoginRequest) =>

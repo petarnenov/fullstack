@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./auth/AuthContext";
 import { ThemeProvider } from "./theme/ThemeContext";
+import { installCacheTelemetry } from "./auth/cacheTelemetry";
 import "./index.css";
 
 const queryClient = new QueryClient({
@@ -14,6 +15,8 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+installCacheTelemetry(queryClient);
 
 createRoot(document.getElementById("root")!).render(
   <ThemeProvider>

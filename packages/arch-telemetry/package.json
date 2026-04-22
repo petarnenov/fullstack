@@ -1,0 +1,10 @@
+{
+  "name": "@amp/arch-telemetry",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "./gradlew bootRun",
+    "build": "./gradlew bootJar",
+    "clean": "./gradlew clean"
+  }
+}

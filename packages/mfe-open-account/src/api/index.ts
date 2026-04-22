@@ -5,6 +5,7 @@ import type {
   CreateAccountRequest,
   OnboardingProgress,
 } from "./generated/data-contracts";
+import { installTelemetry } from "./telemetry";
 
 export type {
   Account,
@@ -32,6 +33,8 @@ const http = axios.create({
   baseURL: "/api",
   headers: { "Content-Type": "application/json" },
 });
+
+installTelemetry(http);
 
 http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const sdk = (window as unknown as { __AMP_PLATFORM__?: PlatformSdk })
