@@ -44,12 +44,12 @@ const EDGE_LOOKUP = new Map(
   ]),
 );
 
-const PARTICLE_MS = 750;
-const FLASH_MS = 600;
-const GHOST_MS = 1200;
-const RIPPLE_MS = 1400;
-const AUTH_PARTICLE_MS = 1100;
-const TOKEN_PARTICLE_MS = 950;
+const PARTICLE_MS = 1750;
+const FLASH_MS = 1600;
+const GHOST_MS = 2200;
+const RIPPLE_MS = 2400;
+const AUTH_PARTICLE_MS = 2100;
+const TOKEN_PARTICLE_MS = 1950;
 const AUTH_COLOR = "#fbbf24"; // amber-400 — login ceremony
 const TOKEN_COLOR = "#eab308"; // yellow-500 — token broadcast
 
