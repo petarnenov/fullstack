@@ -79,9 +79,10 @@ const LANE_GAP = 8;
 const LANE_X0 = 32;
 const PANEL_W = 440;
 // The HTML header lives *outside* the SVG, so the viewBox height is only the
-// remaining flex area — ~650 at the default panel height. Keep PANEL_H close
-// to that so SVG text doesn't get scaled down by preserveAspectRatio=meet.
-const PANEL_H = 650;
+// remaining flex area. 720 leaves a little extra vertical breathing room
+// for the LAST STEPS log; preserveAspectRatio=meet still keeps text at
+// ~90% of declared size, which stays readable.
+const PANEL_H = 720;
 const LANE_Y_TOP = 28;
 const LANE_Y_BOTTOM = PANEL_H - 24;
 const STEP_COLOR_HTTP = "#60a5fa";
@@ -556,10 +557,10 @@ function WindowStateCard({ content, pulse }: { content: WindowSnapshot; pulse: n
   );
 }
 
-const HISTORY_LINE_H = 26;
-const HISTORY_PADDING_TOP = 38;
-const HISTORY_PADDING_BOTTOM = 16;
-const HISTORY_MAX_STEPS = 5;
+const HISTORY_LINE_H = 30;
+const HISTORY_PADDING_TOP = 42;
+const HISTORY_PADDING_BOTTOM = 18;
+const HISTORY_MAX_STEPS = 6;
 const HISTORY_BOX_H =
   HISTORY_PADDING_TOP + HISTORY_LINE_H * HISTORY_MAX_STEPS + HISTORY_PADDING_BOTTOM;
 
@@ -754,16 +755,16 @@ function HistoryLog({ steps }: { steps: Step[] }) {
   return (
     <g>
       <rect x={20} y={baseY} width={PANEL_W - 40} height={HISTORY_BOX_H} rx={8} fill="#0f172a" stroke="#1e293b" />
-      <text x={32} y={baseY + 22} fill="#64748b" fontSize={12} fontWeight={700} letterSpacing={2}>
+      <text x={32} y={baseY + 24} fill="#64748b" fontSize={13} fontWeight={700} letterSpacing={2}>
         LAST STEPS
       </text>
       {steps.slice(-HISTORY_MAX_STEPS).map((s, i) => (
         <text
           key={i}
           x={32}
-          y={baseY + HISTORY_PADDING_TOP + HISTORY_LINE_H * (i + 1) - 8}
+          y={baseY + HISTORY_PADDING_TOP + HISTORY_LINE_H * (i + 1) - 10}
           fill={s.color ?? "#94a3b8"}
-          fontSize={15}
+          fontSize={16}
           style={{ fontFamily: "ui-monospace, SFMono-Regular" }}
         >
           {s.from} → {s.to}  {s.label}
