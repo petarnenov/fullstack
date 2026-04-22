@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 /**
@@ -35,15 +35,22 @@ interface Step {
   windowPatch?: Partial<WindowSnapshot>;
 }
 
-/** Snapshot of what the browser actually holds on behalf of auth. */
+/**
+ * Snapshot of what the browser actually holds on behalf of auth — mirrors
+ * the real production shape post Phase 1:
+ *   window.__AMP_PLATFORM__ = { user: AuthenticatedUser, csrfToken, logout }
+ *   cookie jar: amp_access_token (HttpOnly, Lax, /api, 15m)
+ *                amp_refresh_token (HttpOnly, Strict, /api/auth, 7d)
+ *                amp_csrf_token (JS-readable, Strict, /, 7d)
+ */
 interface WindowSnapshot {
-  sdkUser: string | null;         // window.__AMP_PLATFORM__.user?.email
-  sdkCsrfToken: string | null;    // window.__AMP_PLATFORM__.csrfToken
-  accessCookie: boolean;          // amp_access_token — httpOnly, value opaque to JS
-  refreshCookie: boolean;         // amp_refresh_token — httpOnly
-  csrfCookie: string | null;      // amp_csrf_token — JS-readable
+  sdkUser: { name: string; role: string } | null; // window.__AMP_PLATFORM__.user
+  sdkCsrfToken: string | null;                    // window.__AMP_PLATFORM__.csrfToken
+  sdkHasLogout: boolean;                          // typeof __AMP_PLATFORM__.logout === "function"
+  accessCookie: boolean;
+  refreshCookie: boolean;
+  csrfCookie: string | null;
   status: "anonymous" | "bootstrapping" | "authenticated";
-  authListener: boolean;          // amp:auth-expired listener attached
 }
 
 interface Scenario {
@@ -58,12 +65,14 @@ interface Scenario {
 const EMPTY_WINDOW: WindowSnapshot = {
   sdkUser: null,
   sdkCsrfToken: null,
+  sdkHasLogout: false,
   accessCookie: false,
   refreshCookie: false,
   csrfCookie: null,
   status: "anonymous",
-  authListener: true,
 };
+
+const USER_ADA_SDK = { name: "Ada Lovelace", role: "admin" };
 
 const LANE_W = 88;
 const LANE_GAP = 8;
@@ -97,25 +106,24 @@ function laneCenterX(id: string): number {
 
 const CSRF_ALICE = "Rx7B…pQ9";
 const CSRF_ROTATED = "w0kC…e8F";
-const USER_ADA = "ada@amp.demo";
 
 const WIN_AUTHED_ALICE: WindowSnapshot = {
-  sdkUser: USER_ADA,
+  sdkUser: USER_ADA_SDK,
   sdkCsrfToken: CSRF_ALICE,
+  sdkHasLogout: true,
   accessCookie: true,
   refreshCookie: true,
   csrfCookie: CSRF_ALICE,
   status: "authenticated",
-  authListener: true,
 };
 const WIN_STALE_ACCESS: WindowSnapshot = {
-  sdkUser: USER_ADA,
+  sdkUser: USER_ADA_SDK,
   sdkCsrfToken: CSRF_ALICE,
+  sdkHasLogout: true,
   accessCookie: false, // expired — browser dropped it after Max-Age
   refreshCookie: true,
   csrfCookie: CSRF_ALICE,
   status: "authenticated",
-  authListener: true,
 };
 
 const SCENARIOS: Scenario[] = [
@@ -130,7 +138,7 @@ const SCENARIOS: Scenario[] = [
       { at: 1100, from: "be", to: "be", label: "argon2.verify + issue family", detail: "H2 rows: user_session + refresh_token", color: STEP_COLOR_COOKIE, kind: "cookie" },
       { at: 2100, from: "be", to: "win", label: "Set-Cookie ×3 → browser jar", detail: "access HttpOnly · refresh HttpOnly · csrf JS-readable", color: STEP_COLOR_COOKIE, kind: "cookie", withCookie: true, windowPatch: { accessCookie: true, refreshCookie: true, csrfCookie: CSRF_ALICE } },
       { at: 3200, from: "be", to: "fe", label: "200 { csrfToken, user }", detail: "no access token in JSON body", color: STEP_COLOR_OK, kind: "http", withCsrf: true },
-      { at: 4300, from: "fe", to: "win", label: "window.__AMP_PLATFORM__ = { user, csrfToken, logout }", detail: "getter-backed — rotations don't re-install", color: STEP_COLOR_SDK, kind: "sdk", windowPatch: { sdkUser: USER_ADA, sdkCsrfToken: CSRF_ALICE, status: "authenticated" } },
+      { at: 4300, from: "fe", to: "win", label: "window.__AMP_PLATFORM__ = { user, csrfToken, logout }", detail: "getter-backed — rotations don't re-install", color: STEP_COLOR_SDK, kind: "sdk", windowPatch: { sdkUser: USER_ADA_SDK, sdkCsrfToken: CSRF_ALICE, sdkHasLogout: true, status: "authenticated" } },
     ],
     totalMs: 5500,
   },
@@ -180,7 +188,7 @@ const SCENARIOS: Scenario[] = [
       { at: 1100, from: "be", to: "be", label: "revoke family", detail: "killFamily(familyId) — delete access + refresh rows", color: STEP_COLOR_ERR, kind: "cookie" },
       { at: 2200, from: "be", to: "win", label: "Set-Cookie Max-Age=0 ×3", detail: "browser evicts all three", color: STEP_COLOR_ERR, kind: "cookie", windowPatch: { accessCookie: false, refreshCookie: false, csrfCookie: null } },
       { at: 3300, from: "be", to: "fe", label: "204 No Content", color: STEP_COLOR_OK, kind: "http" },
-      { at: 4400, from: "fe", to: "win", label: "delete window.__AMP_PLATFORM__", detail: "AuthContext.clearSession", color: STEP_COLOR_ERR, kind: "sdk", windowPatch: { sdkUser: null, sdkCsrfToken: null, status: "anonymous" } },
+      { at: 4400, from: "fe", to: "win", label: "delete window.__AMP_PLATFORM__", detail: "AuthContext.clearSession", color: STEP_COLOR_ERR, kind: "sdk", windowPatch: { sdkUser: null, sdkCsrfToken: null, sdkHasLogout: false, status: "anonymous" } },
       { at: 5400, from: "fe", to: "fe", label: "redirect /login", color: STEP_COLOR_SDK, kind: "event" },
     ],
     totalMs: 6500,
@@ -386,10 +394,10 @@ function LaneColumn({ lane }: { lane: Lane }) {
 function WindowStateCard({ content, pulse }: { content: WindowSnapshot; pulse: number }) {
   const lane = LANE_BY_ID.win;
   if (!lane) return null;
-  const boxW = LANE_W + 110;
+  const boxW = LANE_W + 140;
   const boxX = lane.x + LANE_W / 2 - boxW / 2;
   const boxY = LANE_Y_TOP + 64;
-  const boxH = 212;
+  const boxH = 268;
   const cx = lane.x + LANE_W / 2;
   const borderColor = content.sdkUser ? STEP_COLOR_SDK : "#334155";
   const statusColor =
@@ -398,15 +406,25 @@ function WindowStateCard({ content, pulse }: { content: WindowSnapshot; pulse: n
     : "#64748b";
 
   const cookieColor = (present: boolean) => (present ? STEP_COLOR_COOKIE : "#475569");
-  const rows: Array<{ label: string; value: string; color: string }> = [
-    { label: "__AMP_PLATFORM__", value: content.sdkUser ? "{ user, csrf, logout }" : "undefined", color: content.sdkUser ? "#c4b5fd" : "#475569" },
-    { label: "  .user", value: content.sdkUser ?? "null", color: content.sdkUser ? "#e2e8f0" : "#475569" },
-    { label: "  .csrfToken", value: content.sdkCsrfToken ?? "null", color: content.sdkCsrfToken ? STEP_COLOR_CSRF : "#475569" },
-    { label: "cookie amp_access", value: content.accessCookie ? "HttpOnly ✓" : "—", color: cookieColor(content.accessCookie) },
-    { label: "cookie amp_refresh", value: content.refreshCookie ? "HttpOnly ✓" : "—", color: cookieColor(content.refreshCookie) },
-    { label: "cookie amp_csrf", value: content.csrfCookie ?? "—", color: content.csrfCookie ? STEP_COLOR_CSRF : "#475569" },
-    { label: "status", value: content.status, color: statusColor },
-    { label: "amp:auth-expired", value: content.authListener ? "listening" : "detached", color: content.authListener ? "#c4b5fd" : "#475569" },
+  const muted = "#475569";
+  // Values mirror the real Phase 1 Set-Cookie attributes defined in
+  // com.amp.web.common.SessionCookies (access: HttpOnly Lax /api 15m;
+  // refresh: HttpOnly Strict /api/auth 7d; csrf: JS-readable Strict / 7d).
+  type Row =
+    | { kind: "section"; label: string }
+    | { kind: "kv"; label: string; value: string; color: string; detail?: string; detailColor?: string };
+
+  const rows: Row[] = [
+    { kind: "section", label: "window.__AMP_PLATFORM__" },
+    { kind: "kv", label: "  .user",       value: content.sdkUser ? `${content.sdkUser.name} · ${content.sdkUser.role}` : "null",        color: content.sdkUser ? "#e2e8f0" : muted },
+    { kind: "kv", label: "  .csrfToken",  value: content.sdkCsrfToken ?? "null",                                                        color: content.sdkCsrfToken ? STEP_COLOR_CSRF : muted },
+    { kind: "kv", label: "  .logout()",   value: content.sdkHasLogout ? "async fn" : "—",                                                color: content.sdkHasLogout ? "#c4b5fd" : muted },
+    { kind: "section", label: "cookie jar (browser)" },
+    { kind: "kv", label: "amp_access_token",  value: content.accessCookie  ? "•••••• (HttpOnly)" : "—",  color: cookieColor(content.accessCookie),  detail: content.accessCookie  ? "SameSite=Lax · Path=/api · Max-Age=900"       : undefined },
+    { kind: "kv", label: "amp_refresh_token", value: content.refreshCookie ? "•••••• (HttpOnly)" : "—",  color: cookieColor(content.refreshCookie), detail: content.refreshCookie ? "SameSite=Strict · Path=/api/auth · Max-Age=604800" : undefined },
+    { kind: "kv", label: "amp_csrf_token",    value: content.csrfCookie ?? "—",                         color: content.csrfCookie ? STEP_COLOR_CSRF : muted,    detail: content.csrfCookie ? "SameSite=Strict · Path=/ · Max-Age=604800"      : undefined },
+    { kind: "section", label: "shell state" },
+    { kind: "kv", label: "AuthContext.status", value: content.status, color: statusColor },
   ];
 
   return (
@@ -440,37 +458,85 @@ function WindowStateCard({ content, pulse }: { content: WindowSnapshot; pulse: n
         BROWSER STATE
       </text>
       <line x1={boxX + 10} x2={boxX + boxW - 10} y1={boxY + 26} y2={boxY + 26} stroke="#1e293b" strokeWidth={1} />
-      {rows.map((row, i) => {
-        const rowY = boxY + 40 + i * 21;
-        return (
-          <g key={row.label}>
-            <text
-              x={boxX + 12}
-              y={rowY}
-              fill="#64748b"
-              fontSize={9.5}
-              style={{ fontFamily: "ui-monospace, SFMono-Regular" }}
-            >
-              {row.label}
-            </text>
-            <motion.text
-              key={`${row.label}-${pulse}`}
-              x={boxX + boxW - 12}
-              y={rowY}
-              textAnchor="end"
-              fill={row.color}
-              fontSize={10.5}
-              fontWeight={600}
-              initial={{ opacity: 0, x: boxX + boxW - 6 }}
-              animate={{ opacity: 1, x: boxX + boxW - 12 }}
-              transition={{ duration: 0.35, delay: i * 0.03 }}
-              style={{ fontFamily: "ui-monospace, SFMono-Regular" }}
-            >
-              {row.value}
-            </motion.text>
-          </g>
-        );
-      })}
+      {(() => {
+        let y = boxY + 38;
+        const elements: ReactElement[] = [];
+        rows.forEach((row, i) => {
+          if (row.kind === "section") {
+            // Section header — add a touch of top spacing except for the
+            // first section, a subtle full-width divider above, and lilac
+            // uppercase label.
+            if (i > 0) y += 6;
+            elements.push(
+              <g key={`sec-${i}`}>
+                <line
+                  x1={boxX + 12}
+                  x2={boxX + boxW - 12}
+                  y1={y - 8}
+                  y2={y - 8}
+                  stroke="#1e1b4b"
+                  strokeWidth={1}
+                />
+                <text
+                  x={boxX + 12}
+                  y={y + 2}
+                  fill="#a855f7"
+                  fontSize={9}
+                  fontWeight={700}
+                  letterSpacing={1.2}
+                  style={{ fontFamily: "ui-sans-serif, system-ui" }}
+                >
+                  {row.label.toUpperCase()}
+                </text>
+              </g>,
+            );
+            y += 16;
+            return;
+          }
+          elements.push(
+            <g key={`${row.label}-${i}`}>
+              <text
+                x={boxX + 12}
+                y={y}
+                fill="#64748b"
+                fontSize={9.5}
+                style={{ fontFamily: "ui-monospace, SFMono-Regular" }}
+              >
+                {row.label}
+              </text>
+              <motion.text
+                key={`${row.label}-${pulse}`}
+                x={boxX + boxW - 12}
+                y={y}
+                textAnchor="end"
+                fill={row.color}
+                fontSize={10.5}
+                fontWeight={600}
+                initial={{ opacity: 0, x: boxX + boxW - 6 }}
+                animate={{ opacity: 1, x: boxX + boxW - 12 }}
+                transition={{ duration: 0.35, delay: i * 0.03 }}
+                style={{ fontFamily: "ui-monospace, SFMono-Regular" }}
+              >
+                {row.value}
+              </motion.text>
+              {row.detail && (
+                <text
+                  x={boxX + boxW - 12}
+                  y={y + 10}
+                  textAnchor="end"
+                  fill="#64748b"
+                  fontSize={8}
+                  style={{ fontFamily: "ui-monospace, SFMono-Regular" }}
+                >
+                  {row.detail}
+                </text>
+              )}
+            </g>,
+          );
+          y += row.detail ? 23 : 16;
+        });
+        return elements;
+      })()}
       <motion.rect
         key={`win-pulse-${pulse}`}
         x={boxX}
@@ -490,7 +556,7 @@ function WindowStateCard({ content, pulse }: { content: WindowSnapshot; pulse: n
   );
 }
 
-const FLY_BAND_TOP = LANE_Y_TOP + 64 + 212 + 14;       // below the WindowStateCard
+const FLY_BAND_TOP = LANE_Y_TOP + 64 + 268 + 10;       // below the WindowStateCard
 const FLY_BAND_BOTTOM = LANE_Y_BOTTOM - 160;           // above the HistoryLog
 
 function FlyingArrow({ step }: { step: FlyingStep }) {
