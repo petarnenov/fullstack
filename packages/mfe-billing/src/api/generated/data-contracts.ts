@@ -80,7 +80,7 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  token: string;
+  csrfToken: string;
   user: AuthenticatedUser;
 }
 
@@ -239,6 +239,8 @@ export interface DepositRequest {
 }
 
 export type AuthLoginCreateData = LoginResponse;
+
+export type AuthRefreshCreateData = LoginResponse;
 
 export type AuthLogoutCreateData = any;
 

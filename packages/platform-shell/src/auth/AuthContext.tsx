@@ -10,7 +10,11 @@ import {
 } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { authApi, type AuthenticatedUser } from "./authApi";
-import { AUTH_EXPIRED_EVENT, installPlatformSdk } from "./platformSdk";
+import {
+  AUTH_EXPIRED_EVENT,
+  installPlatformSdk,
+  type PlatformSdk,
+} from "./platformSdk";
 
 export type PlatformUser = AuthenticatedUser;
 
@@ -23,34 +27,35 @@ interface AuthContextValue {
   logout: () => Promise<void>;
 }
 
-const TOKEN_KEY = "amp.auth.token";
+const CSRF_COOKIE = "amp_csrf_token";
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-function readStoredToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(TOKEN_KEY);
+function readCsrfCookie(): string | null {
+  if (typeof document === "undefined") return null;
+  const prefix = `${CSRF_COOKIE}=`;
+  const match = document.cookie
+    .split("; ")
+    .find((c) => c.startsWith(prefix));
+  return match ? decodeURIComponent(match.slice(prefix.length)) : null;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [user, setUser] = useState<PlatformUser | null>(null);
-  const [status, setStatus] = useState<Status>(() =>
-    readStoredToken() ? "bootstrapping" : "anonymous",
-  );
-  const tokenRef = useRef<string | null>(readStoredToken());
+  const [status, setStatus] = useState<Status>("bootstrapping");
+  const csrfRef = useRef<string | null>(readCsrfCookie());
+  const refreshInFlight = useRef<Promise<boolean> | null>(null);
 
   const clearSession = useCallback(() => {
-    tokenRef.current = null;
-    window.localStorage.removeItem(TOKEN_KEY);
+    csrfRef.current = null;
     setUser(null);
     setStatus("anonymous");
     queryClient.clear();
   }, [queryClient]);
 
-  const persistSession = useCallback(
-    (token: string, nextUser: PlatformUser) => {
-      tokenRef.current = token;
-      window.localStorage.setItem(TOKEN_KEY, token);
+  const adoptSession = useCallback(
+    (nextUser: PlatformUser, csrfToken: string) => {
+      csrfRef.current = csrfToken;
       setUser(nextUser);
       setStatus("authenticated");
       queryClient.invalidateQueries();
@@ -58,51 +63,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [queryClient],
   );
 
-  useEffect(() => {
-    return installPlatformSdk({ getToken: () => tokenRef.current });
-  }, []);
-
-  useEffect(() => {
-    const onExpired = () => {
-      if (tokenRef.current) clearSession();
-    };
-    window.addEventListener(AUTH_EXPIRED_EVENT, onExpired);
-    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
-  }, [clearSession]);
-
-  useEffect(() => {
-    const existing = tokenRef.current;
-    if (!existing) return;
-    let cancelled = false;
-    authApi
-      .me(existing)
-      .then((me) => {
-        if (cancelled) return;
-        setUser(me);
-        setStatus("authenticated");
-      })
-      .catch(() => {
-        if (cancelled) return;
-        clearSession();
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [clearSession]);
-
-  const login = useCallback(
-    async (email: string, password: string) => {
-      const { token, user: nextUser } = await authApi.login({ email, password });
-      persistSession(token, nextUser);
-    },
-    [persistSession],
-  );
-
-  const logout = useCallback(async () => {
-    const token = tokenRef.current;
-    if (token) {
+  // Deduplicate refresh attempts — a single tab can have several 401s in
+  // flight at once (dashboard calls billing + accounts + trading in parallel);
+  // all of them should wait on the same /refresh response.
+  const tryRefresh = useCallback(async (): Promise<boolean> => {
+    if (refreshInFlight.current) return refreshInFlight.current;
+    const csrf = csrfRef.current ?? readCsrfCookie();
+    if (!csrf) return false;
+    const p = (async () => {
       try {
-        await authApi.logout(token);
+        const session = await authApi.refresh(csrf);
+        adoptSession(session.user, session.csrfToken);
+        return true;
+      } catch {
+        return false;
+      } finally {
+        refreshInFlight.current = null;
+      }
+    })();
+    refreshInFlight.current = p;
+    return p;
+  }, [adoptSession]);
+
+  const doLogout = useCallback(async () => {
+    const csrf = csrfRef.current ?? readCsrfCookie();
+    if (csrf) {
+      try {
+        await authApi.logout(csrf);
       } catch {
         /* swallow — local state is the authoritative clear */
       }
@@ -110,9 +97,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearSession();
   }, [clearSession]);
 
+  // Publish the runtime SDK that federated MFEs read off window. A getter-
+  // driven bag means fresh csrf values are observed without re-installing
+  // the SDK (which would churn the window object on every rotation).
+  useEffect(() => {
+    const sdk: PlatformSdk = {
+      get user() {
+        return user;
+      },
+      get csrfToken() {
+        return csrfRef.current;
+      },
+      logout: doLogout,
+    };
+    return installPlatformSdk(sdk);
+  }, [user, doLogout]);
+
+  // Bootstrap: try /me first. If the access cookie is gone but the refresh
+  // cookie + csrf are still around, attempt a silent refresh before flipping
+  // to anonymous. Every transition from bootstrapping runs through here once.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const me = await authApi.me();
+        if (cancelled) return;
+        const csrf = csrfRef.current ?? readCsrfCookie() ?? "";
+        adoptSession(me, csrf);
+      } catch {
+        if (cancelled) return;
+        const recovered = await tryRefresh();
+        if (cancelled) return;
+        if (!recovered) clearSession();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Run once on mount — adoptSession / clearSession / tryRefresh all close
+    // over queryClient which is stable.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // MFEs dispatch amp:auth-expired when an /api call returns 401. Give it a
+  // silent-refresh chance before tearing the session down.
+  useEffect(() => {
+    const onExpired = () => {
+      void (async () => {
+        const recovered = await tryRefresh();
+        if (!recovered) clearSession();
+      })();
+    };
+    window.addEventListener(AUTH_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
+  }, [clearSession, tryRefresh]);
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const session = await authApi.login({ email, password });
+      adoptSession(session.user, session.csrfToken);
+    },
+    [adoptSession],
+  );
+
   const value = useMemo<AuthContextValue>(
-    () => ({ status, user, login, logout }),
-    [status, user, login, logout],
+    () => ({ status, user, login, logout: doLogout }),
+    [status, user, login, doLogout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

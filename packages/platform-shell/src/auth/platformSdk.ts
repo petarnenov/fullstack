@@ -1,13 +1,23 @@
 /**
  * Cross-MFE runtime contract owned by the shell.
  *
- * The shell writes this object to window so that remotes' axios instances can
- * read the current session token without importing shell code. In production
- * this would move into a federation-exposed SDK or an import-map module;
- * a window bag is the minimum viable interface for a 30-minute talk.
+ * With httpOnly cookies the access token is no longer visible to JS — the
+ * browser attaches it to every same-origin request automatically. What the
+ * remotes need from the shell is:
+ *   1. The CSRF token to echo as X-CSRF-Token on state-changing requests.
+ *   2. A way to trigger logout when the backend signals 401 post-refresh.
+ *   3. The current user so widgets can render role-aware UI without /me.
+ *
+ * The SDK is duplicated inline in each MFE (one-line interface, zero build
+ * coupling). When evolving it, update every MFE copy + the ambient
+ * declaration in platform-shell/src/vite-env.d.ts.
  */
+import type { AuthenticatedUser } from "./authApi";
+
 export interface PlatformSdk {
-  getToken(): string | null;
+  user: AuthenticatedUser | null;
+  csrfToken: string | null;
+  logout(): Promise<void>;
 }
 
 const SDK_KEY = "__AMP_PLATFORM__";

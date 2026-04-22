@@ -49,10 +49,10 @@ function newId(): string {
 /**
  * Fires the login ceremony so the visualiser can animate the story beyond
  * what the HTTP interceptor alone captures: the Hibernate write of the
- * session into H2, and the token broadcast from shell to every MFE via
- * `window.__AMP_PLATFORM__.getToken()`. Demo-only synthetic events —
- * session persistence happens inside Java; we emit it here so the
- * audience sees it without instrumenting JPA.
+ * session into H2, and the csrf broadcast from shell to every MFE via
+ * `window.__AMP_PLATFORM__.csrfToken`. Access + refresh tokens travel in
+ * httpOnly cookies so they're never touched by JS; we emit a synthetic
+ * event here purely for visualiser storytelling.
  */
 export function emitLoginCeremony(correlationId?: string): void {
   const base = { team: "platform", timestamp: Date.now(), correlationId };
