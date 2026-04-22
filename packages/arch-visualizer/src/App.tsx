@@ -9,6 +9,7 @@ import { TokenFlowPanel } from "./auth/TokenFlowPanel";
 import { TEAM_COLORS } from "./topology/topologyDef";
 
 const TOKEN_PANEL_W = 440;
+const TOKEN_PANEL_GUTTER = 32; // 16 panel margin-right + 16 gap before topology
 
 export default function App() {
   useEventStream();
@@ -16,7 +17,7 @@ export default function App() {
 
   return (
     <div style={{ width: "100vw", height: "100vh", overflow: "hidden", background: "#020617", position: "relative" }}>
-      <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: TOKEN_PANEL_W }}>
+      <div style={{ position: "absolute", top: 0, bottom: 0, left: 0, right: TOKEN_PANEL_W + TOKEN_PANEL_GUTTER }}>
         <Topology>
           <ParticleLayer />
         </Topology>

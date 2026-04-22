@@ -535,12 +535,13 @@ function arrowHead(x: number, y: number, dir: 1 | -1): string {
 
 const panelStyle: React.CSSProperties = {
   position: "absolute",
-  top: 0,
-  right: 0,
+  top: 16,
+  right: 16,
+  bottom: 16,
   width: PANEL_W,
-  height: "100vh",
   background: "linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(2, 6, 23, 0.98) 100%)",
-  borderLeft: "1px solid #1e293b",
+  border: "1px solid #1e293b",
+  borderRadius: 14,
   boxShadow: "-12px 0 40px rgba(0,0,0,0.45)",
   overflow: "hidden",
   fontFamily: "ui-sans-serif, system-ui",
