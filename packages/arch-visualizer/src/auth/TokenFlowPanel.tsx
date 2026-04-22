@@ -69,10 +69,12 @@ const LANE_W = 88;
 const LANE_GAP = 8;
 const LANE_X0 = 32;
 const PANEL_W = 440;
-const PANEL_H = 1100;
-const HEADER_H = 180;
-const LANE_Y_TOP = HEADER_H + 40;
-const LANE_Y_BOTTOM = PANEL_H - 40;
+// The HTML header lives *outside* the SVG, so the viewBox height is only the
+// remaining flex area — ~650 at the default panel height. Keep PANEL_H close
+// to that so SVG text doesn't get scaled down by preserveAspectRatio=meet.
+const PANEL_H = 650;
+const LANE_Y_TOP = 28;
+const LANE_Y_BOTTOM = PANEL_H - 24;
 const STEP_COLOR_HTTP = "#60a5fa";
 const STEP_COLOR_SDK = "#a855f7";
 const STEP_COLOR_COOKIE = "#eab308";
@@ -384,10 +386,10 @@ function LaneColumn({ lane }: { lane: Lane }) {
 function WindowStateCard({ content, pulse }: { content: WindowSnapshot; pulse: number }) {
   const lane = LANE_BY_ID.win;
   if (!lane) return null;
-  const boxW = LANE_W + 100;
+  const boxW = LANE_W + 110;
   const boxX = lane.x + LANE_W / 2 - boxW / 2;
   const boxY = LANE_Y_TOP + 64;
-  const boxH = 248;
+  const boxH = 212;
   const cx = lane.x + LANE_W / 2;
   const borderColor = content.sdkUser ? STEP_COLOR_SDK : "#334155";
   const statusColor =
@@ -439,7 +441,7 @@ function WindowStateCard({ content, pulse }: { content: WindowSnapshot; pulse: n
       </text>
       <line x1={boxX + 10} x2={boxX + boxW - 10} y1={boxY + 26} y2={boxY + 26} stroke="#1e293b" strokeWidth={1} />
       {rows.map((row, i) => {
-        const rowY = boxY + 44 + i * 25;
+        const rowY = boxY + 40 + i * 21;
         return (
           <g key={row.label}>
             <text
@@ -488,8 +490,11 @@ function WindowStateCard({ content, pulse }: { content: WindowSnapshot; pulse: n
   );
 }
 
+const FLY_BAND_TOP = LANE_Y_TOP + 64 + 212 + 14;       // below the WindowStateCard
+const FLY_BAND_BOTTOM = LANE_Y_BOTTOM - 160;           // above the HistoryLog
+
 function FlyingArrow({ step }: { step: FlyingStep }) {
-  const y0 = useMemo(() => LANE_Y_TOP + 100 + Math.random() * (LANE_Y_BOTTOM - LANE_Y_TOP - 260), []);
+  const y0 = useMemo(() => FLY_BAND_TOP + Math.random() * Math.max(24, FLY_BAND_BOTTOM - FLY_BAND_TOP), []);
   const x0 = laneCenterX(step.from);
   const x1 = laneCenterX(step.to);
   const isSelf = step.from === step.to;
