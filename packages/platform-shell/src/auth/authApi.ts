@@ -5,7 +5,11 @@ import type {
   LoginRequest,
   LoginResponse,
 } from "../api/generated/data-contracts";
-import { emitLoginCeremony, installTelemetry } from "./telemetry";
+import {
+  emitLoginCeremony,
+  emitRefreshCeremony,
+  installTelemetry,
+} from "./telemetry";
 
 export type { AuthenticatedUser, DemoCredential, LoginRequest, LoginResponse };
 
@@ -35,7 +39,10 @@ export const authApi = {
       .post<LoginResponse>("/refresh", undefined, {
         headers: { [CSRF_HEADER]: csrfToken },
       })
-      .then((r) => r.data),
+      .then((r) => {
+        emitRefreshCeremony();
+        return r.data;
+      }),
 
   logout: (csrfToken: string) =>
     http

@@ -50,8 +50,10 @@ const GHOST_MS = 2200;
 const RIPPLE_MS = 2400;
 const AUTH_PARTICLE_MS = 2100;
 const TOKEN_PARTICLE_MS = 1950;
-const AUTH_COLOR = "#fbbf24"; // amber-400 — login ceremony
-const TOKEN_COLOR = "#eab308"; // yellow-500 — token broadcast
+const REFRESH_PARTICLE_MS = 1900;
+const AUTH_COLOR = "#fbbf24";    // amber-400 — login ceremony
+const TOKEN_COLOR = "#eab308";   // yellow-500 — csrf broadcast
+const REFRESH_COLOR = "#14b8a6"; // teal-500 — silent rotation
 
 function particleColor(ev: TelemetryEvent): string {
   if (ev.kind === "invalidate") return "#a855f7";
@@ -124,14 +126,23 @@ export function ParticleLayer() {
         continue;
       }
 
-      if (ev.kind === "auth-login" || ev.kind === "token-broadcast") {
+      if (ev.kind === "auth-login" || ev.kind === "token-broadcast" || ev.kind === "auth-refresh") {
         const key = `${ev.from}→${ev.to}`;
         const hit = EDGE_LOOKUP.get(key);
         if (!hit) continue;
         const path = edgePath(hit.edge);
-        const color = ev.kind === "auth-login" ? AUTH_COLOR : TOKEN_COLOR;
-        const duration = ev.kind === "auth-login" ? AUTH_PARTICLE_MS : TOKEN_PARTICLE_MS;
-        const label = ev.kind === "auth-login" ? "auth" : "token";
+        const color =
+          ev.kind === "auth-login" ? AUTH_COLOR
+          : ev.kind === "auth-refresh" ? REFRESH_COLOR
+          : TOKEN_COLOR;
+        const duration =
+          ev.kind === "auth-login" ? AUTH_PARTICLE_MS
+          : ev.kind === "auth-refresh" ? REFRESH_PARTICLE_MS
+          : TOKEN_PARTICLE_MS;
+        const label =
+          ev.kind === "auth-login" ? "auth"
+          : ev.kind === "auth-refresh" ? "refresh"
+          : "csrf";
         const pKey = `p-${ev.id}`;
         setParticles((list) => [
           ...list,

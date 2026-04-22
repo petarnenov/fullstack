@@ -15,8 +15,10 @@ function humanise(ev: TelemetryEvent): string {
       return `⚙ shell lazy-loaded ${ev.to}`;
     case "auth-login":
       return `🔑 ${ev.from} → ${ev.to}  ${ev.path ?? "login"}`;
+    case "auth-refresh":
+      return `♻ silent refresh  ${ev.from} → ${ev.to}`;
     case "token-broadcast":
-      return `🪙 token broadcast  shell → ${ev.to}`;
+      return `🪙 csrf broadcast  shell → ${ev.to}`;
     default:
       return `${ev.kind} ${ev.from} → ${ev.to}`;
   }

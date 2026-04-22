@@ -56,19 +56,45 @@ function newId(): string {
  */
 export function emitLoginCeremony(correlationId?: string): void {
   const base = { team: "platform", timestamp: Date.now(), correlationId };
-  // Session persist round-trip — api-java:auth writes to H2 and commits.
+  // Session persist round-trip — api-java:auth writes access + refresh rows
+  // to H2 then commits. Cookie emission itself is implicit in the
+  // login response but we paint it as a story beat for the audience.
   setTimeout(() => {
-    emit({ ...base, id: newId(), kind: "auth-login", from: "api-java:auth", to: "h2", path: "session.persist" });
+    emit({ ...base, id: newId(), kind: "auth-login", from: "api-java:auth", to: "h2", path: "session + refresh persisted" });
   }, 220);
   setTimeout(() => {
-    emit({ ...base, id: newId(), kind: "auth-login", from: "h2", to: "api-java:auth", path: "session.committed" });
+    emit({ ...base, id: newId(), kind: "auth-login", from: "h2", to: "api-java:auth", path: "family committed" });
   }, 820);
 
-  // Token broadcast: shell hands the bearer to all 4 MFEs in one pulse.
+  // CSRF broadcast: shell publishes the csrfToken via window.__AMP_PLATFORM__
+  // so every MFE axios interceptor can echo it on state-changing writes.
+  // Access + refresh live in httpOnly cookies — the browser, not JS, is what
+  // carries them to the next request.
   const mfes = ["mfe-open-account", "mfe-billing", "mfe-trading", "mfe-reporting"];
   setTimeout(() => {
     for (const to of mfes) {
-      emit({ ...base, id: newId(), kind: "token-broadcast", from: "shell", to, path: "bearer" });
+      emit({ ...base, id: newId(), kind: "token-broadcast", from: "shell", to, path: "csrfToken" });
+    }
+  }, 1400);
+}
+
+/**
+ * Fires when the shell's silent /refresh cycle rotates a family. Mirrors
+ * the login ceremony shape so the visualiser can reuse its animation:
+ * the H2 rotate + the csrf re-broadcast after a fresh cookie set.
+ */
+export function emitRefreshCeremony(correlationId?: string): void {
+  const base = { team: "platform", timestamp: Date.now(), correlationId };
+  setTimeout(() => {
+    emit({ ...base, id: newId(), kind: "auth-refresh", from: "api-java:auth", to: "h2", path: "rotate family" });
+  }, 220);
+  setTimeout(() => {
+    emit({ ...base, id: newId(), kind: "auth-refresh", from: "h2", to: "api-java:auth", path: "old revoked, new committed" });
+  }, 820);
+  const mfes = ["mfe-open-account", "mfe-billing", "mfe-trading", "mfe-reporting"];
+  setTimeout(() => {
+    for (const to of mfes) {
+      emit({ ...base, id: newId(), kind: "token-broadcast", from: "shell", to, path: "csrfToken (rotated)" });
     }
   }, 1400);
 }

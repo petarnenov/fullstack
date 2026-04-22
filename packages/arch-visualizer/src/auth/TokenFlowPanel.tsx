@@ -7,7 +7,10 @@ import { AnimatePresence, motion } from "framer-motion";
  * whatever happens to be happening in the live topology at that moment.
  *
  * Not federated with the live event stream on purpose: the point of this
- * panel is to narrate auth as an isolated pedagogical sequence.
+ * panel is to narrate auth as an isolated pedagogical sequence. Cookie-era
+ * edition (post Phase 1 prod-auth cut-over) — tokens live in httpOnly
+ * cookies the browser ships automatically; JS only ever touches the CSRF
+ * cookie + the published SDK.
  */
 
 type ScenarioId = "login" | "authed-call" | "refresh" | "logout";
@@ -21,23 +24,26 @@ interface Lane {
 
 interface Step {
   at: number;       // ms from scenario start
-  from: string;     // lane id OR special "window"
-  to: string;       // lane id OR special "window"
+  from: string;     // lane id
+  to: string;       // lane id
   label: string;
   detail?: string;
   color?: string;
-  kind?: "http" | "sdk" | "storage" | "event";
-  withToken?: boolean; // draw golden "T" marker on the particle
-  windowPatch?: Partial<WindowSnapshot>; // partial update to window state after this step
+  kind?: "http" | "sdk" | "cookie" | "event";
+  withCookie?: boolean; // draw amber 🍪 marker on the particle
+  withCsrf?: boolean;   // draw lilac C marker on the particle
+  windowPatch?: Partial<WindowSnapshot>;
 }
 
 /** Snapshot of what the browser actually holds on behalf of auth. */
 interface WindowSnapshot {
-  sdkToken: string | null;          // what window.__AMP_PLATFORM__.getToken() returns
-  localStorage: string | null;      // localStorage["amp.auth.token"]
+  sdkUser: string | null;         // window.__AMP_PLATFORM__.user?.email
+  sdkCsrfToken: string | null;    // window.__AMP_PLATFORM__.csrfToken
+  accessCookie: boolean;          // amp_access_token — httpOnly, value opaque to JS
+  refreshCookie: boolean;         // amp_refresh_token — httpOnly
+  csrfCookie: string | null;      // amp_csrf_token — JS-readable
   status: "anonymous" | "bootstrapping" | "authenticated";
-  user: string | null;              // shell AuthContext user.email
-  authListener: boolean;            // amp:auth-expired listener attached
+  authListener: boolean;          // amp:auth-expired listener attached
 }
 
 interface Scenario {
@@ -50,10 +56,12 @@ interface Scenario {
 }
 
 const EMPTY_WINDOW: WindowSnapshot = {
-  sdkToken: null,
-  localStorage: null,
+  sdkUser: null,
+  sdkCsrfToken: null,
+  accessCookie: false,
+  refreshCookie: false,
+  csrfCookie: null,
   status: "anonymous",
-  user: null,
   authListener: true,
 };
 
@@ -67,13 +75,14 @@ const LANE_Y_TOP = HEADER_H + 40;
 const LANE_Y_BOTTOM = PANEL_H - 40;
 const STEP_COLOR_HTTP = "#60a5fa";
 const STEP_COLOR_SDK = "#a855f7";
-const STEP_COLOR_TOKEN = "#eab308";
+const STEP_COLOR_COOKIE = "#eab308";
+const STEP_COLOR_CSRF = "#c4b5fd";
 const STEP_COLOR_ERR = "#f87171";
 const STEP_COLOR_OK = "#22c55e";
 
 const LANES: Lane[] = [
   { id: "fe", label: "FE", sub: "shell + MFEs", x: LANE_X0 },
-  { id: "win", label: "window", sub: "getToken()", x: LANE_X0 + (LANE_W + LANE_GAP) * 1 },
+  { id: "win", label: "browser", sub: "cookies + SDK", x: LANE_X0 + (LANE_W + LANE_GAP) * 1 },
   { id: "bff", label: "BFF", sub: "bff-reporting", x: LANE_X0 + (LANE_W + LANE_GAP) * 2 },
   { id: "be", label: "BE", sub: "api-java:auth", x: LANE_X0 + (LANE_W + LANE_GAP) * 3 },
 ];
@@ -84,23 +93,26 @@ function laneCenterX(id: string): number {
   return (LANE_BY_ID[id]?.x ?? 0) + LANE_W / 2;
 }
 
-const TOKEN_ALICE = "eyJhbGc…alice";
-const TOKEN_STALE = "eyJhbGc…stale";
-const TOKEN_ROTATED = "eyJhbGc…rot42";
+const CSRF_ALICE = "Rx7B…pQ9";
+const CSRF_ROTATED = "w0kC…e8F";
 const USER_ADA = "ada@amp.demo";
 
 const WIN_AUTHED_ALICE: WindowSnapshot = {
-  sdkToken: TOKEN_ALICE,
-  localStorage: TOKEN_ALICE,
+  sdkUser: USER_ADA,
+  sdkCsrfToken: CSRF_ALICE,
+  accessCookie: true,
+  refreshCookie: true,
+  csrfCookie: CSRF_ALICE,
   status: "authenticated",
-  user: USER_ADA,
   authListener: true,
 };
-const WIN_STALE_ADA: WindowSnapshot = {
-  sdkToken: TOKEN_STALE,
-  localStorage: TOKEN_STALE,
+const WIN_STALE_ACCESS: WindowSnapshot = {
+  sdkUser: USER_ADA,
+  sdkCsrfToken: CSRF_ALICE,
+  accessCookie: false, // expired — browser dropped it after Max-Age
+  refreshCookie: true,
+  csrfCookie: CSRF_ALICE,
   status: "authenticated",
-  user: USER_ADA,
   authListener: true,
 };
 
@@ -108,26 +120,29 @@ const SCENARIOS: Scenario[] = [
   {
     id: "login",
     title: "1 · Login",
-    blurb: "user signs in → BE mints token → FE caches it in window SDK",
+    blurb:
+      "user signs in → BE argon2-verifies → 3 Set-Cookie headers → browser stores → shell publishes SDK",
     initialWindow: EMPTY_WINDOW,
     steps: [
-      { at: 0, from: "fe", to: "be", label: "POST /api/auth/login", detail: "email + password", color: STEP_COLOR_HTTP, kind: "http", windowPatch: { status: "bootstrapping" } },
-      { at: 1100, from: "be", to: "be", label: "write H2 session", detail: "Hibernate persist", color: STEP_COLOR_TOKEN, kind: "storage" },
-      { at: 2000, from: "be", to: "fe", label: "200 { token, user }", detail: "opaque bearer", color: STEP_COLOR_OK, kind: "http", withToken: true },
-      { at: 3100, from: "fe", to: "win", label: "window.__AMP_PLATFORM__", detail: "getToken() closure", color: STEP_COLOR_SDK, kind: "sdk", withToken: true, windowPatch: { sdkToken: TOKEN_ALICE, localStorage: TOKEN_ALICE, status: "authenticated", user: USER_ADA } },
+      { at: 0, from: "fe", to: "be", label: "POST /api/auth/login", detail: "email + password (rate-limited 10/min)", color: STEP_COLOR_HTTP, kind: "http", windowPatch: { status: "bootstrapping" } },
+      { at: 1100, from: "be", to: "be", label: "argon2.verify + issue family", detail: "H2 rows: user_session + refresh_token", color: STEP_COLOR_COOKIE, kind: "cookie" },
+      { at: 2100, from: "be", to: "win", label: "Set-Cookie ×3 → browser jar", detail: "access HttpOnly · refresh HttpOnly · csrf JS-readable", color: STEP_COLOR_COOKIE, kind: "cookie", withCookie: true, windowPatch: { accessCookie: true, refreshCookie: true, csrfCookie: CSRF_ALICE } },
+      { at: 3200, from: "be", to: "fe", label: "200 { csrfToken, user }", detail: "no access token in JSON body", color: STEP_COLOR_OK, kind: "http", withCsrf: true },
+      { at: 4300, from: "fe", to: "win", label: "window.__AMP_PLATFORM__ = { user, csrfToken, logout }", detail: "getter-backed — rotations don't re-install", color: STEP_COLOR_SDK, kind: "sdk", windowPatch: { sdkUser: USER_ADA, sdkCsrfToken: CSRF_ALICE, status: "authenticated" } },
     ],
-    totalMs: 4400,
+    totalMs: 5500,
   },
   {
     id: "authed-call",
     title: "2 · Authed call through the BFF",
-    blurb: "MFE pulls token from window → BFF forwards → BE validates",
+    blurb:
+      "MFE fires GET → browser attaches access cookie → BFF forwards Cookie header → BE validates",
     initialWindow: WIN_AUTHED_ALICE,
     steps: [
-      { at: 0, from: "fe", to: "win", label: "__AMP_PLATFORM__.getToken()", detail: "axios interceptor", color: STEP_COLOR_SDK, kind: "sdk" },
-      { at: 900, from: "win", to: "fe", label: "bearer returned", detail: "in-memory", color: STEP_COLOR_TOKEN, kind: "sdk", withToken: true },
-      { at: 1800, from: "fe", to: "bff", label: "GET /api/reporting/summary", detail: "Authorization: Bearer …", color: STEP_COLOR_HTTP, kind: "http", withToken: true },
-      { at: 3000, from: "bff", to: "be", label: "GET /api/billing/invoices", detail: "BFF forwards Authorization", color: STEP_COLOR_HTTP, kind: "http", withToken: true },
+      { at: 0, from: "fe", to: "fe", label: "axios GET /api/reporting/summary", detail: "withCredentials:true", color: STEP_COLOR_HTTP, kind: "http" },
+      { at: 900, from: "win", to: "bff", label: "browser attaches Cookie", detail: "amp_access_token + amp_csrf_token", color: STEP_COLOR_COOKIE, kind: "cookie", withCookie: true },
+      { at: 2000, from: "bff", to: "be", label: "GET /api/billing/invoices", detail: "Cookie forwarded verbatim (no token validation in BFF)", color: STEP_COLOR_HTTP, kind: "http", withCookie: true },
+      { at: 3100, from: "be", to: "be", label: "lookupSession(access) → user", detail: "cookie read in AuthenticatedJsonAction", color: STEP_COLOR_COOKIE, kind: "cookie" },
       { at: 4200, from: "be", to: "bff", label: "200 invoices[]", color: STEP_COLOR_OK, kind: "http" },
       { at: 5300, from: "bff", to: "fe", label: "200 aggregated report", detail: "Mono.zip fan-in", color: STEP_COLOR_OK, kind: "http" },
     ],
@@ -135,35 +150,38 @@ const SCENARIOS: Scenario[] = [
   },
   {
     id: "refresh",
-    title: "3 · Refresh on 401",
-    blurb: "expired token → BE 401 → FE dispatches amp:auth-expired → silent re-login",
-    initialWindow: WIN_STALE_ADA,
+    title: "3 · Silent refresh on 401",
+    blurb:
+      "access cookie expired → 401 → shell tries /refresh with CSRF header → family rotated → retry",
+    initialWindow: WIN_STALE_ACCESS,
     steps: [
-      { at: 0, from: "fe", to: "be", label: "GET /api/billing/invoices", detail: "stale token", color: STEP_COLOR_HTTP, kind: "http", withToken: true },
-      { at: 1100, from: "be", to: "fe", label: "401 session expired", color: STEP_COLOR_ERR, kind: "http" },
-      { at: 2100, from: "fe", to: "fe", label: "CustomEvent('amp:auth-expired')", detail: "shell listens", color: STEP_COLOR_SDK, kind: "event" },
-      { at: 3000, from: "fe", to: "be", label: "POST /api/auth/refresh", detail: "refresh_token cookie", color: STEP_COLOR_HTTP, kind: "http" },
-      { at: 4100, from: "be", to: "be", label: "rotate H2 session", detail: "invalidate old, insert new", color: STEP_COLOR_TOKEN, kind: "storage" },
-      { at: 5100, from: "be", to: "fe", label: "200 { token }", detail: "new bearer", color: STEP_COLOR_OK, kind: "http", withToken: true },
-      { at: 6200, from: "fe", to: "win", label: "window.__AMP_PLATFORM__ updated", detail: "SDK swap, zero reloads", color: STEP_COLOR_SDK, kind: "sdk", withToken: true, windowPatch: { sdkToken: TOKEN_ROTATED, localStorage: TOKEN_ROTATED } },
-      { at: 7300, from: "fe", to: "be", label: "GET /api/billing/invoices (retry)", color: STEP_COLOR_HTTP, kind: "http", withToken: true },
-      { at: 8400, from: "be", to: "fe", label: "200 invoices[]", color: STEP_COLOR_OK, kind: "http" },
+      { at: 0, from: "fe", to: "be", label: "GET /api/billing/invoices", detail: "cookie jar has no access token", color: STEP_COLOR_HTTP, kind: "http" },
+      { at: 1100, from: "be", to: "fe", label: "401 Not authenticated", color: STEP_COLOR_ERR, kind: "http" },
+      { at: 2100, from: "fe", to: "fe", label: "dispatch amp:auth-expired", detail: "shell listener de-dupes", color: STEP_COLOR_SDK, kind: "event" },
+      { at: 3100, from: "fe", to: "be", label: "POST /api/auth/refresh", detail: "X-CSRF-Token: Rx7B…pQ9 + refresh cookie", color: STEP_COLOR_HTTP, kind: "http", withCsrf: true },
+      { at: 4200, from: "be", to: "be", label: "rotate family (reuse-detect)", detail: "mark old refresh revoked, mint new access+refresh+csrf", color: STEP_COLOR_COOKIE, kind: "cookie" },
+      { at: 5300, from: "be", to: "win", label: "Set-Cookie ×3 → refreshed", detail: "same family_id, new values", color: STEP_COLOR_COOKIE, kind: "cookie", withCookie: true, windowPatch: { accessCookie: true, csrfCookie: CSRF_ROTATED } },
+      { at: 6400, from: "be", to: "fe", label: "200 { csrfToken, user }", color: STEP_COLOR_OK, kind: "http", withCsrf: true, windowPatch: { sdkCsrfToken: CSRF_ROTATED } },
+      { at: 7500, from: "fe", to: "be", label: "retry GET /api/billing/invoices", color: STEP_COLOR_HTTP, kind: "http", withCookie: true },
+      { at: 8600, from: "be", to: "fe", label: "200 invoices[]", color: STEP_COLOR_OK, kind: "http" },
     ],
-    totalMs: 9500,
+    totalMs: 9700,
   },
   {
     id: "logout",
     title: "4 · Logout",
-    blurb: "explicit sign-out clears session + window SDK across every MFE",
+    blurb:
+      "explicit sign-out revokes family → 3 cookies cleared → SDK emptied → redirect /login",
     initialWindow: WIN_AUTHED_ALICE,
     steps: [
-      { at: 0, from: "fe", to: "be", label: "POST /api/auth/logout", detail: "Authorization: Bearer …", color: STEP_COLOR_HTTP, kind: "http", withToken: true },
-      { at: 1100, from: "be", to: "be", label: "delete H2 session", detail: "Hibernate remove", color: STEP_COLOR_ERR, kind: "storage" },
-      { at: 2100, from: "be", to: "fe", label: "204 No Content", color: STEP_COLOR_OK, kind: "http" },
-      { at: 3100, from: "fe", to: "win", label: "window.__AMP_PLATFORM__ = null", detail: "SDK cleared", color: STEP_COLOR_ERR, kind: "sdk", windowPatch: { sdkToken: null, localStorage: null, status: "anonymous", user: null } },
-      { at: 4100, from: "fe", to: "fe", label: "redirect /login", color: STEP_COLOR_SDK, kind: "event" },
+      { at: 0, from: "fe", to: "be", label: "POST /api/auth/logout", detail: "X-CSRF-Token required", color: STEP_COLOR_HTTP, kind: "http", withCsrf: true },
+      { at: 1100, from: "be", to: "be", label: "revoke family", detail: "killFamily(familyId) — delete access + refresh rows", color: STEP_COLOR_ERR, kind: "cookie" },
+      { at: 2200, from: "be", to: "win", label: "Set-Cookie Max-Age=0 ×3", detail: "browser evicts all three", color: STEP_COLOR_ERR, kind: "cookie", windowPatch: { accessCookie: false, refreshCookie: false, csrfCookie: null } },
+      { at: 3300, from: "be", to: "fe", label: "204 No Content", color: STEP_COLOR_OK, kind: "http" },
+      { at: 4400, from: "fe", to: "win", label: "delete window.__AMP_PLATFORM__", detail: "AuthContext.clearSession", color: STEP_COLOR_ERR, kind: "sdk", windowPatch: { sdkUser: null, sdkCsrfToken: null, status: "anonymous" } },
+      { at: 5400, from: "fe", to: "fe", label: "redirect /login", color: STEP_COLOR_SDK, kind: "event" },
     ],
-    totalMs: 5200,
+    totalMs: 6500,
   },
 ];
 
@@ -219,7 +237,6 @@ export function TokenFlowPanel() {
       timers.current.push(id);
     }
 
-    // Auto-advance to the next scenario if looping is on.
     if (loopAll) {
       const id = window.setTimeout(() => {
         const idx = SCENARIOS.findIndex((s) => s.id === active);
@@ -296,22 +313,18 @@ export function TokenFlowPanel() {
           </linearGradient>
         </defs>
 
-        {/* Lanes */}
         {LANES.map((lane) => (
           <LaneColumn key={lane.id} lane={lane} />
         ))}
 
-        {/* Window SDK live state — what __AMP_PLATFORM__ holds right now */}
         <WindowStateCard content={windowContent} pulse={windowPulse} />
 
-        {/* Flying steps */}
         <AnimatePresence>
           {flying.map((step) => (
             <FlyingArrow key={step.key} step={step} />
           ))}
         </AnimatePresence>
 
-        {/* History log at the bottom */}
         <HistoryLog steps={history} />
       </svg>
     </div>
@@ -336,7 +349,6 @@ function LaneColumn({ lane }: { lane: Lane }) {
         stroke="#1e293b"
         strokeWidth={1}
       />
-      {/* top cap — the role label */}
       <rect
         x={lane.x}
         y={LANE_Y_TOP}
@@ -356,7 +368,6 @@ function LaneColumn({ lane }: { lane: Lane }) {
           {lane.sub}
         </text>
       )}
-      {/* vertical guide */}
       <line
         x1={cx}
         y1={LANE_Y_TOP + 60}
@@ -373,26 +384,27 @@ function LaneColumn({ lane }: { lane: Lane }) {
 function WindowStateCard({ content, pulse }: { content: WindowSnapshot; pulse: number }) {
   const lane = LANE_BY_ID.win;
   if (!lane) return null;
-  const boxW = LANE_W + 80;
+  const boxW = LANE_W + 100;
   const boxX = lane.x + LANE_W / 2 - boxW / 2;
   const boxY = LANE_Y_TOP + 64;
-  const boxH = 218;
+  const boxH = 248;
   const cx = lane.x + LANE_W / 2;
-  const isEmpty = content.sdkToken === null;
-  const tokenColor = isEmpty ? "#475569" : STEP_COLOR_TOKEN;
-  const borderColor = isEmpty ? "#334155" : STEP_COLOR_SDK;
+  const borderColor = content.sdkUser ? STEP_COLOR_SDK : "#334155";
   const statusColor =
     content.status === "authenticated" ? STEP_COLOR_OK
     : content.status === "bootstrapping" ? "#fbbf24"
     : "#64748b";
 
-  const rows: Array<{ label: string; value: string; color: string; mono?: boolean }> = [
-    { label: "__AMP_PLATFORM__", value: isEmpty ? "undefined" : "{ getToken }", color: isEmpty ? "#475569" : "#c4b5fd", mono: true },
-    { label: "  getToken() →", value: content.sdkToken ?? "null", color: tokenColor, mono: true },
-    { label: "localStorage", value: content.localStorage ? `"${content.localStorage}"` : "—", color: content.localStorage ? "#60a5fa" : "#475569", mono: true },
-    { label: "status", value: content.status, color: statusColor, mono: true },
-    { label: "user", value: content.user ?? "null", color: content.user ? "#e2e8f0" : "#475569", mono: true },
-    { label: "amp:auth-expired", value: content.authListener ? "listening" : "detached", color: content.authListener ? "#c4b5fd" : "#475569", mono: true },
+  const cookieColor = (present: boolean) => (present ? STEP_COLOR_COOKIE : "#475569");
+  const rows: Array<{ label: string; value: string; color: string }> = [
+    { label: "__AMP_PLATFORM__", value: content.sdkUser ? "{ user, csrf, logout }" : "undefined", color: content.sdkUser ? "#c4b5fd" : "#475569" },
+    { label: "  .user", value: content.sdkUser ?? "null", color: content.sdkUser ? "#e2e8f0" : "#475569" },
+    { label: "  .csrfToken", value: content.sdkCsrfToken ?? "null", color: content.sdkCsrfToken ? STEP_COLOR_CSRF : "#475569" },
+    { label: "cookie amp_access", value: content.accessCookie ? "HttpOnly ✓" : "—", color: cookieColor(content.accessCookie) },
+    { label: "cookie amp_refresh", value: content.refreshCookie ? "HttpOnly ✓" : "—", color: cookieColor(content.refreshCookie) },
+    { label: "cookie amp_csrf", value: content.csrfCookie ?? "—", color: content.csrfCookie ? STEP_COLOR_CSRF : "#475569" },
+    { label: "status", value: content.status, color: statusColor },
+    { label: "amp:auth-expired", value: content.authListener ? "listening" : "detached", color: content.authListener ? "#c4b5fd" : "#475569" },
   ];
 
   return (
@@ -423,11 +435,11 @@ function WindowStateCard({ content, pulse }: { content: WindowSnapshot; pulse: n
         letterSpacing={1.8}
         style={{ fontFamily: "ui-sans-serif, system-ui" }}
       >
-        WINDOW STATE
+        BROWSER STATE
       </text>
       <line x1={boxX + 10} x2={boxX + boxW - 10} y1={boxY + 26} y2={boxY + 26} stroke="#1e293b" strokeWidth={1} />
       {rows.map((row, i) => {
-        const rowY = boxY + 44 + i * 26;
+        const rowY = boxY + 44 + i * 25;
         return (
           <g key={row.label}>
             <text
@@ -450,14 +462,13 @@ function WindowStateCard({ content, pulse }: { content: WindowSnapshot; pulse: n
               initial={{ opacity: 0, x: boxX + boxW - 6 }}
               animate={{ opacity: 1, x: boxX + boxW - 12 }}
               transition={{ duration: 0.35, delay: i * 0.03 }}
-              style={{ fontFamily: row.mono ? "ui-monospace, SFMono-Regular" : undefined }}
+              style={{ fontFamily: "ui-monospace, SFMono-Regular" }}
             >
               {row.value}
             </motion.text>
           </g>
         );
       })}
-      {/* Pulse ring when state changes */}
       <motion.rect
         key={`win-pulse-${pulse}`}
         x={boxX}
@@ -488,7 +499,6 @@ function FlyingArrow({ step }: { step: FlyingStep }) {
   const detail = step.detail;
 
   if (isSelf) {
-    // Loop arrow on a single lane — render a small arc and a pulse.
     const cx = x0;
     const y1 = y0 + 40;
     const d = `M ${cx} ${y0} C ${cx + 40} ${y0}, ${cx + 40} ${y1}, ${cx} ${y1}`;
@@ -514,12 +524,12 @@ function FlyingArrow({ step }: { step: FlyingStep }) {
           style={{ offsetPath: `path("${d}")`, filter: `drop-shadow(0 0 6px ${color})` }}
         />
         <StepLabel x={cx + 48} y={y0 + 20} color={color} label={labelText} detail={detail} />
-        {step.withToken && <TokenBadge x={cx + 48} y={y0 + 20} />}
+        {step.withCookie && <CookieBadge x={cx + 48} y={y0 + 20} />}
+        {step.withCsrf && <CsrfBadge x={cx + 48} y={y0 + 20} />}
       </g>
     );
   }
 
-  // Horizontal arc between lanes
   const dx = x1 - x0;
   const arc = Math.abs(dx) * 0.15;
   const cx = (x0 + x1) / 2;
@@ -530,7 +540,6 @@ function FlyingArrow({ step }: { step: FlyingStep }) {
 
   return (
     <g>
-      {/* the path itself fades in and fades out */}
       <motion.path
         d={d}
         fill="none"
@@ -543,7 +552,6 @@ function FlyingArrow({ step }: { step: FlyingStep }) {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.3 }}
       />
-      {/* particle travelling along */}
       <motion.circle
         r={6}
         fill={color}
@@ -553,26 +561,33 @@ function FlyingArrow({ step }: { step: FlyingStep }) {
         transition={{ duration: 1.1, ease: "easeInOut" }}
         style={{ offsetPath: `path("${d}")`, filter: `drop-shadow(0 0 8px ${color})` }}
       />
-      {step.withToken && (
-        <motion.g
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+      {step.withCookie && (
+        <motion.circle
+          r={9}
+          fill="none"
+          stroke={STEP_COLOR_COOKIE}
+          strokeWidth={1.3}
+          initial={{ offsetDistance: "0%", opacity: 0.9 }}
+          animate={{ offsetDistance: "100%", opacity: 0.9 }}
           exit={{ opacity: 0 }}
-        >
-          <motion.circle
-            r={9}
-            fill="none"
-            stroke={STEP_COLOR_TOKEN}
-            strokeWidth={1.3}
-            initial={{ offsetDistance: "0%", opacity: 0.9 }}
-            animate={{ offsetDistance: "100%", opacity: 0.9 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.1, ease: "easeInOut" }}
-            style={{ offsetPath: `path("${d}")`, filter: `drop-shadow(0 0 6px ${STEP_COLOR_TOKEN})` }}
-          />
-        </motion.g>
+          transition={{ duration: 1.1, ease: "easeInOut" }}
+          style={{ offsetPath: `path("${d}")`, filter: `drop-shadow(0 0 6px ${STEP_COLOR_COOKIE})` }}
+        />
       )}
-      {/* arrow head */}
+      {step.withCsrf && (
+        <motion.circle
+          r={9}
+          fill="none"
+          stroke={STEP_COLOR_CSRF}
+          strokeWidth={1.3}
+          strokeDasharray="2 2"
+          initial={{ offsetDistance: "0%", opacity: 0.9 }}
+          animate={{ offsetDistance: "100%", opacity: 0.9 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1.1, ease: "easeInOut" }}
+          style={{ offsetPath: `path("${d}")`, filter: `drop-shadow(0 0 6px ${STEP_COLOR_CSRF})` }}
+        />
+      )}
       <motion.path
         d={arrowHead(x1, y0, dx > 0 ? 1 : -1)}
         fill={color}
@@ -624,7 +639,7 @@ function StepLabel({ x, y, color, label, detail }: { x: number; y: number; color
   );
 }
 
-function TokenBadge({ x, y }: { x: number; y: number }) {
+function CookieBadge({ x, y }: { x: number; y: number }) {
   return (
     <motion.g
       initial={{ scale: 0, opacity: 0 }}
@@ -632,9 +647,25 @@ function TokenBadge({ x, y }: { x: number; y: number }) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.4, delay: 0.4 }}
     >
-      <circle cx={x + 44} cy={y} r={8} fill="#422006" stroke={STEP_COLOR_TOKEN} strokeWidth={1.5} />
-      <text x={x + 44} y={y + 3} textAnchor="middle" fill={STEP_COLOR_TOKEN} fontSize={9} fontWeight={900}>
-        T
+      <circle cx={x + 44} cy={y} r={8} fill="#422006" stroke={STEP_COLOR_COOKIE} strokeWidth={1.5} />
+      <text x={x + 44} y={y + 3} textAnchor="middle" fill={STEP_COLOR_COOKIE} fontSize={9} fontWeight={900}>
+        🍪
+      </text>
+    </motion.g>
+  );
+}
+
+function CsrfBadge({ x, y }: { x: number; y: number }) {
+  return (
+    <motion.g
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.4, delay: 0.4 }}
+    >
+      <circle cx={x + 44} cy={y} r={8} fill="#1e1b4b" stroke={STEP_COLOR_CSRF} strokeWidth={1.5} />
+      <text x={x + 44} y={y + 3} textAnchor="middle" fill={STEP_COLOR_CSRF} fontSize={9} fontWeight={900}>
+        C
       </text>
     </motion.g>
   );

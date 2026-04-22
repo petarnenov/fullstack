@@ -4,6 +4,7 @@ export type EventKind =
   | "invalidate"
   | "lazy-load"
   | "auth-login"
+  | "auth-refresh"
   | "token-broadcast";
 
 export type NodeId =
