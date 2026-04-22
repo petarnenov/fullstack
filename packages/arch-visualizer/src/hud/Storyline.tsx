@@ -13,6 +13,10 @@ function humanise(ev: TelemetryEvent): string {
       return `✦ ${ev.from} invalidated  ${ev.path ?? ""}`;
     case "lazy-load":
       return `⚙ shell lazy-loaded ${ev.to}`;
+    case "auth-login":
+      return `🔑 ${ev.from} → ${ev.to}  ${ev.path ?? "login"}`;
+    case "token-broadcast":
+      return `🪙 token broadcast  shell → ${ev.to}`;
     default:
       return `${ev.kind} ${ev.from} → ${ev.to}`;
   }

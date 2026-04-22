@@ -48,6 +48,10 @@ const PARTICLE_MS = 750;
 const FLASH_MS = 600;
 const GHOST_MS = 1200;
 const RIPPLE_MS = 1400;
+const AUTH_PARTICLE_MS = 1100;
+const TOKEN_PARTICLE_MS = 950;
+const AUTH_COLOR = "#fbbf24"; // amber-400 — login ceremony
+const TOKEN_COLOR = "#eab308"; // yellow-500 — token broadcast
 
 function particleColor(ev: TelemetryEvent): string {
   if (ev.kind === "invalidate") return "#a855f7";
@@ -116,6 +120,45 @@ export function ParticleLayer() {
           setTimeout(() => {
             setParticles((list) => list.filter((p) => p.key !== pKey));
           }, PARTICLE_MS + 40);
+        }
+        continue;
+      }
+
+      if (ev.kind === "auth-login" || ev.kind === "token-broadcast") {
+        const key = `${ev.from}→${ev.to}`;
+        const hit = EDGE_LOOKUP.get(key);
+        if (!hit) continue;
+        const path = edgePath(hit.edge);
+        const color = ev.kind === "auth-login" ? AUTH_COLOR : TOKEN_COLOR;
+        const duration = ev.kind === "auth-login" ? AUTH_PARTICLE_MS : TOKEN_PARTICLE_MS;
+        const label = ev.kind === "auth-login" ? "auth" : "token";
+        const pKey = `p-${ev.id}`;
+        setParticles((list) => [
+          ...list,
+          { key: pKey, path, reverse: hit.reverse, color, size: 7, durationMs: duration, label },
+        ]);
+        setTimeout(() => {
+          setParticles((list) => list.filter((p) => p.key !== pKey));
+        }, duration + 40);
+
+        // Flash the edge so the path itself glows during the ceremony.
+        const fKey = `f-${ev.id}`;
+        setFlashes((list) => [...list, { key: fKey, path, color, ttlMs: duration }]);
+        setTimeout(() => {
+          setFlashes((list) => list.filter((f) => f.key !== fKey));
+        }, duration + 40);
+
+        // Destination ripple — a small pulse at the node the particle lands on.
+        const toCenter = nodeCenter(ev.to as string);
+        if (toCenter) {
+          const rKey = `r-${ev.id}`;
+          setRipples((list) => [
+            ...list,
+            { key: rKey, cx: toCenter.x, cy: toCenter.y, color },
+          ]);
+          setTimeout(() => {
+            setRipples((list) => list.filter((r) => r.key !== rKey));
+          }, RIPPLE_MS + 40);
         }
         continue;
       }

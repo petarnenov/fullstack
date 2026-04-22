@@ -5,7 +5,7 @@ import type {
   LoginRequest,
   LoginResponse,
 } from "../api/generated/data-contracts";
-import { installTelemetry } from "./telemetry";
+import { emitLoginCeremony, installTelemetry } from "./telemetry";
 
 export type { AuthenticatedUser, DemoCredential, LoginRequest, LoginResponse };
 
@@ -18,7 +18,10 @@ installTelemetry(http);
 
 export const authApi = {
   login: (body: LoginRequest) =>
-    http.post<LoginResponse>("/login", body).then((r) => r.data),
+    http.post<LoginResponse>("/login", body).then((r) => {
+      emitLoginCeremony();
+      return r.data;
+    }),
 
   logout: (token: string) =>
     http

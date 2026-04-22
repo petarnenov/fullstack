@@ -45,6 +45,33 @@ function newId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
+/**
+ * Fires the login ceremony so the visualiser can animate the story beyond
+ * what the HTTP interceptor alone captures: the Hibernate write of the
+ * session into H2, and the token broadcast from shell to every MFE via
+ * `window.__AMP_PLATFORM__.getToken()`. Demo-only synthetic events —
+ * session persistence happens inside Java; we emit it here so the
+ * audience sees it without instrumenting JPA.
+ */
+export function emitLoginCeremony(correlationId?: string): void {
+  const base = { team: "platform", timestamp: Date.now(), correlationId };
+  // Session persist round-trip — api-java:auth writes to H2 and commits.
+  setTimeout(() => {
+    emit({ ...base, id: newId(), kind: "auth-login", from: "api-java:auth", to: "h2", path: "session.persist" });
+  }, 220);
+  setTimeout(() => {
+    emit({ ...base, id: newId(), kind: "auth-login", from: "h2", to: "api-java:auth", path: "session.committed" });
+  }, 820);
+
+  // Token broadcast: shell hands the bearer to all 4 MFEs in one pulse.
+  const mfes = ["mfe-open-account", "mfe-billing", "mfe-trading", "mfe-reporting"];
+  setTimeout(() => {
+    for (const to of mfes) {
+      emit({ ...base, id: newId(), kind: "token-broadcast", from: "shell", to, path: "bearer" });
+    }
+  }, 1400);
+}
+
 export function installTelemetry(http: AxiosInstance): void {
   http.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     const cid = newId();

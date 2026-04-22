@@ -1,4 +1,10 @@
-export type EventKind = "request" | "response" | "invalidate" | "lazy-load";
+export type EventKind =
+  | "request"
+  | "response"
+  | "invalidate"
+  | "lazy-load"
+  | "auth-login"
+  | "token-broadcast";
 
 export type NodeId =
   | "user"
