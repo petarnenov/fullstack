@@ -481,20 +481,25 @@ function TokenBadge({ x, y }: { x: number; y: number }) {
 }
 
 function HistoryLog({ steps }: { steps: Step[] }) {
-  const baseY = LANE_Y_BOTTOM - 60;
+  const LINE_H = 20;
+  const PADDING_TOP = 30;
+  const PADDING_BOTTOM = 14;
+  const MAX_STEPS = 5;
+  const boxH = PADDING_TOP + LINE_H * MAX_STEPS + PADDING_BOTTOM;
+  const baseY = LANE_Y_BOTTOM - boxH;
   return (
     <g>
-      <rect x={20} y={baseY} width={PANEL_W - 40} height={56} rx={8} fill="#0f172a" stroke="#1e293b" />
-      <text x={32} y={baseY + 14} fill="#64748b" fontSize={9} fontWeight={700} letterSpacing={2}>
+      <rect x={20} y={baseY} width={PANEL_W - 40} height={boxH} rx={8} fill="#0f172a" stroke="#1e293b" />
+      <text x={32} y={baseY + 18} fill="#64748b" fontSize={11} fontWeight={700} letterSpacing={2}>
         LAST STEPS
       </text>
-      {steps.slice(-5).map((s, i) => (
+      {steps.slice(-MAX_STEPS).map((s, i) => (
         <text
           key={i}
           x={32}
-          y={baseY + 26 + i * 8}
+          y={baseY + PADDING_TOP + LINE_H * (i + 1) - 6}
           fill={s.color ?? "#94a3b8"}
-          fontSize={8.5}
+          fontSize={13}
           style={{ fontFamily: "ui-monospace, SFMono-Regular" }}
         >
           {s.from} → {s.to}  {s.label}
