@@ -6,7 +6,7 @@ export const swaggerDocument = {
     description:
       "Domain-oriented API for the Asset Management Platform POC. Three domains: auth (Platform Core), billing (Billing team), accounts (Open Account team).",
   },
-  servers: [{ url: "http://localhost:3000", description: "Development" }],
+  servers: [{ url: "http://localhost:8088", description: "Development" }],
   tags: [
     { name: "Auth", description: "Owned by Platform Core team" },
     { name: "Billing", description: "Owned by Billing team (requires auth)" },

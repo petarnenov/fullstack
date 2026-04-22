@@ -14,12 +14,12 @@ npm install
 npm run dev
 ```
 
-Wait until you see all four green process names in the `concurrently` output. Open:
+Wait until you see all five process names in the `concurrently` output (`api-java`, `billing`, `accounts`, `trading`, `shell`). Open:
 
 - http://localhost:5173 — platform shell (main demo surface)
 - http://localhost:5174 — `mfe-open-account` standalone
 - http://localhost:5175 — `mfe-billing` standalone
-- http://localhost:3000/api-docs — Swagger UI
+- `packages/swagger/src/swagger.ts` — the hand-maintained OpenAPI contract (there is no runtime Swagger UI — the backend is Java Tomcat, serving only `/api/*`)
 
 Have the repo open in the editor. Keep a terminal visible for restart demos.
 
@@ -48,18 +48,19 @@ Open `packages/`:
 
 ```
 packages/
-├── api/                 # Express, domain-split (4 domains)
+├── api-java/            # Tomcat WAR (Struts2 + Akka + Hibernate), 4 domains
+├── swagger/             # Hand-maintained OpenAPI contract + codegen
 ├── platform-shell/      # Host
 ├── mfe-billing/         # Remote
 ├── mfe-open-account/    # Remote
 └── mfe-trading/         # Remote
 ```
 
-Show `package.json` names: `@amp/api`, `@amp/platform-shell`, `@amp/mfe-billing`, `@amp/mfe-open-account`, `@amp/mfe-trading`.
+Show `package.json` names: `@amp/api-java`, `@amp/swagger`, `@amp/platform-shell`, `@amp/mfe-billing`, `@amp/mfe-open-account`, `@amp/mfe-trading`.
 
 Point at `ARCHITECTURE.md` — the team-ownership diagram.
 
-Open `packages/api/src/domains/` — four domain folders (auth, billing, accounts, trading), each with router + repo + schema. Tell them: "If we ever need a per-team BFF, this is already half-done."
+Open `packages/api-java/backend/src/main/java/com/amp/web/` — four domain folders (auth, billing, accounts, trading), each with Struts actions. Then open `.../service/<domain>/` for the Akka managers and `.../agent/<domain>/` for the reaction traits and in-memory state. Tell them: "Each domain is a candidate for extraction into its own BFF later — it's already isolated behind its own Akka agent."
 
 ---
 
@@ -275,7 +276,7 @@ Tie it back to the shared cache: navigate to **/billing**, pay an invoice, retur
 
 ## 10 · Types & API contract (2 min)
 
-Open `packages/api/src/swagger.ts` briefly — point at `tags: ["Billing"]` and `tags: ["Accounts"]`.
+Open `packages/swagger/src/swagger.ts` briefly — point at `tags: ["Billing"]` and `tags: ["Accounts"]`. Mention: the Swagger doc is the contract SoT; the Java tier in `packages/api-java` implements it.
 
 Run:
 
@@ -331,7 +332,8 @@ Common questions worth preparing:
 | Accounts page                       | http://localhost:5173/accounts                   |
 | Billing standalone                  | http://localhost:5175                            |
 | Accounts standalone                 | http://localhost:5174                            |
-| Swagger UI                          | http://localhost:3000/api-docs                   |
+| Swagger contract (SoT)              | `packages/swagger/src/swagger.ts`                |
+| Java backend entrypoint             | `packages/api-java/backend/src/main/java/com/amp/web/` |
 | Shell federation config             | `packages/platform-shell/vite.config.ts`         |
 | Billing `exposes`                   | `packages/mfe-billing/vite.config.ts`            |
 | Lazy imports in shell               | `packages/platform-shell/src/pages/DashboardPage.tsx` |

@@ -36,13 +36,14 @@ A micro-frontend POC for a realistic platform. Three product teams (Billing, Ope
 │          │   HTTP (axios, same origin, Bearer)     │                │
 │          ▼                   ▼                     ▼                │
 │  ┌──────────────────────────────────────────────────────────────┐   │
-│  │   api     :3000   (shared service, domain-split)              │   │
+│  │   api-java  :8088  Tomcat WAR, Struts2 + Akka + Hibernate    │   │
 │  │                                                              │   │
-│  │   /api/auth/*      →  auth.router     (Platform Core)        │   │
-│  │   /api/billing/*   →  billing.router  (Billing, auth)        │   │
-│  │   /api/accounts/*  →  accounts.router (Open Account, auth)   │   │
-│  │   /api/trading/*   →  trading.router  (Trading, auth)        │   │
-│  │   Swagger UI /api-docs  (all four domains)                   │   │
+│  │   /api/auth/*      →  com.amp.web.auth      (Platform Core)  │   │
+│  │   /api/billing/*   →  com.amp.web.billing   (Billing, auth)  │   │
+│  │   /api/accounts/*  →  com.amp.web.accounts  (Open Account)   │   │
+│  │   /api/trading/*   →  com.amp.web.trading   (Trading, auth)  │   │
+│  │                                                              │   │
+│  │   Swagger doc hand-maintained in packages/swagger/           │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -150,7 +151,7 @@ Auth is a Platform Core concern — the shell owns it end-to-end. Neither MFE kn
 
 For a 30-minute talk the window bag is the minimum that teaches the right mental model (contract-first, zero build coupling). For production I'd pick federation-exposed.
 
-**Backend.** `api/src/domains/auth/` issues opaque tokens from an in-memory session map (not JWT — POC). `api/src/shared/authMiddleware.ts` is applied to `/api/billing/*` and `/api/accounts/*`. Demo users are hardcoded and the login page autofills them via a demo-only `GET /api/auth/demo-credentials` endpoint that would not ship in production.
+**Backend.** `com.amp.agent.auth.AuthProcess` issues opaque hex tokens persisted via Hibernate to `user_session_tbl` in an in-memory H2 (not JWT — POC). A shared `AuthenticatedJsonAction` base class guards every billing/accounts/trading action by calling `AuthManager.me(token)` before dispatching to the subclass. Demo users are seeded by Flyway (`db_migrations/MIGRATIONS/V20260422_00001_03__insert_demo_users.sql`) and the login page autofills them via a demo-only `GET /api/auth/demo-credentials` endpoint that would not ship in production.
 
 **Session persistence.** Token lives in `localStorage` under `amp.auth.token`. On boot, the shell calls `/api/auth/me` with the stored token; 401 clears it and redirects to `/login`. On login, the shell invalidates the entire React Query cache — every widget refetches under the new identity without extra wiring, thanks to the shared `QueryClient` singleton.
 
@@ -181,26 +182,26 @@ Both MFEs use CSS Modules + [`vite-plugin-css-injected-by-js`](https://github.co
 
 ## API design
 
-`packages/api` is a single Express process, split by domain:
+`packages/api-java` is a single Tomcat-deployed WAR, split by domain:
 
-- `src/domains/auth/` — login, sessions, `/me`, owned by Platform Core.
-- `src/domains/billing/` — `billing.router.ts` + `billing.schemas.ts` (Zod) + `billing.repository.ts` (in-memory).
-- `src/domains/accounts/` — parallel structure.
-- `src/domains/trading/` — symbols, positions, orders, **per-account cash ledger**, portfolio summary. Market orders fill instantly at the seeded last price; positions + cash are keyed by `accountId` (Trading's own in-memory map, auto-inits unseen accounts to $1,000,000). Buys debit cash, sells credit cash; over-spends and over-sells both return `rejected` orders with 409.
+- `com.amp.web.auth` — Struts action per endpoint, `AuthManager` service, `AuthTrait` Akka reactions, `AuthProcess` Hibernate-backed persistence.
+- `com.amp.web.billing` — parallel structure (`BillingManager` + `BillingTrait` + `BillingProcess`) with in-memory state seeded in a static block.
+- `com.amp.web.accounts` — parallel structure; includes the GET/POST collision on `/api/accounts` resolved by HTTP-method branching inside `ListOrCreateAccountsAction`.
+- `com.amp.web.trading` — symbols, positions, orders, **per-account cash ledger**, portfolio summary. Market orders fill instantly at the seeded last price; positions + cash are keyed by `accountId` (`TradingProcess.CASH_LEDGER`, a static `Map<String,Double>` auto-initialised to $1,000,000 for unseen accounts). Buys debit cash, sells credit cash; over-spends and over-sells both return `rejected` orders with 409.
 
-**Cross-domain convention.** `accountId` is the shared join key used by Billing (invoices reference an account), Accounts (owns the account identity + KYC), and Trading (owns the cash ledger and positions for that account). No team imports another's repository — each owns its slice of the account's data and exposes it through its own API.
+**Cross-domain convention.** `accountId` is the shared join key used by Billing (invoices reference an account), Accounts (owns the account identity + KYC), and Trading (owns the cash ledger and positions for that account). No manager imports another's process — each owns its slice of the account's data and exposes it through its own actions.
 
-Nothing is shared between domains beyond the HTTP server itself — each domain is a candidate for extraction into its own BFF later. Swagger document (`src/swagger.ts`) covers all domains with team-tagged operations.
+Agents are registered once in `atomatron.worker.agentsystem.AgentSystem.createAgents()`; each runs on its own Akka mailbox so the actor model serialises state mutations for free. Struts URL dispatch uses a custom `MultiSegmentActionMapper` (in `com.amp.web.common`) to support REST-style wildcards like `invoices/*/pay` that the default mapper rejects. Swagger document (`packages/swagger/src/swagger.ts`) is the contract SoT — the Java tier must match it.
 
 ## Type generation
 
 One source of truth (Swagger) → two independent generated clients:
 
 ```
-api/src/swagger.ts
+packages/swagger/src/swagger.ts
         │
         ▼  tsx generateSwagger.ts
-api/swagger.json
+packages/swagger/swagger.json
         │
         ├─→ platform-shell/src/api/generated/       (auth contract only)
         ├─→ mfe-billing/src/api/generated/          (via swagger-typescript-api)
@@ -215,14 +216,15 @@ Each package imports only the contract types it needs and uses plain axios for c
 - **No shared-ui package.** Design tokens are duplicated in each package's CSS. In production, a `@amp/design-tokens` workspace with CSS variables would be the first extraction.
 - **No event bus / cross-MFE messaging.** All cross-MFE effects go through the shared `QueryClient` (cache invalidation) or the backend. If teams need imperative comms, a custom-events bus at the shell level is the next step.
 - **No dynamic import-maps / runtime remote URL discovery.** Remote URLs are hard-coded in `platform-shell/vite.config.ts`. Production would inject these at build time or load a manifest.
-- **No real IdP.** Auth uses opaque in-memory tokens + hardcoded demo users. Production swaps the `authRepository` for an OIDC / IdP integration and moves the token to an httpOnly cookie.
-- **No persistence.** Repositories are in-memory arrays; data resets on API restart.
+- **No real IdP.** Auth uses opaque hex tokens + hardcoded demo users seeded by Flyway. Production swaps `AuthProcess` for an OIDC / IdP integration and moves the token to an httpOnly cookie.
+- **No persistence for billing/accounts/trading.** `BillingProcess`, `AccountsProcess`, `TradingProcess` hold state in static collections; data resets on every Tomcat restart. Auth persists to an in-memory H2 via Hibernate (Flyway migrations create the schema), so sessions survive across requests but not across restarts.
+- **No Node/Express tier.** The branch previously had an `@amp/api` workspace that mirrored the domains in TypeScript + Jest; it was deleted in favour of the Java backend. The Swagger contract moved to `@amp/swagger` (pure data + codegen).
 
 ## Tech stack
 
 - React 19, Vite 6, TypeScript 5, React Router 7, TanStack Query 5
 - `@originjs/vite-plugin-federation` for Module Federation
 - `vite-plugin-css-injected-by-js` for remote CSS
-- Express 4, Zod, Swagger/OpenAPI 3
-- `swagger-typescript-api` for client generation
-- Jest + ts-jest for API tests
+- Java 17, Tomcat 9, Apache Struts 2, Akka 2.6 (Scala 2.13), Hibernate 5.6, H2, Flyway
+- Gradle 8 for the WAR build; `swagger-typescript-api` for frontend client generation
+- OpenAPI 3.0 contract hand-maintained in `packages/swagger`

@@ -6,14 +6,12 @@
 		"packages/*"
 	],
 	"scripts": {
-		"generate:types": "npm run generate:types --workspace=@amp/api",
-		"build:api": "npm run build --workspace=@amp/api",
+		"generate:types": "npm run generate:types --workspace=@amp/swagger",
 		"build:shell": "npm run build --workspace=@amp/platform-shell",
 		"build:billing": "npm run build --workspace=@amp/mfe-billing",
 		"build:accounts": "npm run build --workspace=@amp/mfe-open-account",
 		"build:trading": "npm run build --workspace=@amp/mfe-trading",
-		"build": "npm run build:api && npm run build:billing && npm run build:accounts && npm run build:trading && npm run build:shell",
-		"dev:api": "npm run dev --workspace=@amp/api",
+		"build": "npm run generate:types && npm run build:billing && npm run build:accounts && npm run build:trading && npm run build:shell",
 		"dev:api-java": "bash scripts/dev-api-java.sh",
 		"dev:shell": "npm run dev --workspace=@amp/platform-shell",
 		"dev:billing": "npm run preview --workspace=@amp/mfe-billing",
@@ -23,8 +21,7 @@
 		"dev:accounts:standalone": "npm run dev --workspace=@amp/mfe-open-account",
 		"dev:trading:standalone": "npm run dev --workspace=@amp/mfe-trading",
 		"dev": "npm run generate:types && npm run build:billing && npm run build:accounts && npm run build:trading && concurrently -k --kill-others-on-fail -n api-java,billing,accounts,trading,shell -c red,yellow,cyan,magenta,green \"npm run dev:api-java\" \"npm run dev:billing\" \"npm run dev:accounts\" \"npm run dev:trading\" \"npm run dev:shell\"",
-		"kill:dev": "bash -c 'P=$(lsof -ti :3000 -i :5173 -i :5174 -i :5175 -i :5176 -i :8088 -i :8085 | sort -u); if [ -z \"$P\" ]; then echo \"no dev processes on 3000/5173-5176/8088\"; exit 0; fi; echo \"$P\" | xargs kill 2>/dev/null; sleep 1; S=$(lsof -ti :3000 -i :5173 -i :5174 -i :5175 -i :5176 -i :8088 -i :8085 | sort -u); if [ -n \"$S\" ]; then echo \"$S\" | xargs kill -9 2>/dev/null; fi; echo \"dev ports cleared\"'",
-		"test": "npm run test --workspace=@amp/api"
+		"kill:dev": "bash -c 'P=$(lsof -ti :5173 -i :5174 -i :5175 -i :5176 -i :8088 -i :8085 | sort -u); if [ -z \"$P\" ]; then echo \"no dev processes on 5173-5176/8088\"; exit 0; fi; echo \"$P\" | xargs kill 2>/dev/null; sleep 1; S=$(lsof -ti :5173 -i :5174 -i :5175 -i :5176 -i :8088 -i :8085 | sort -u); if [ -n \"$S\" ]; then echo \"$S\" | xargs kill -9 2>/dev/null; fi; echo \"dev ports cleared\"'"
 	},
 	"devDependencies": {
 		"concurrently": "^8.2.2",

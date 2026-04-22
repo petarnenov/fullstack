@@ -61,9 +61,10 @@
 | Billing       | `@amp/mfe-billing`      | 5175 | Invoices, transactions, balance widget      |
 | Open Account  | `@amp/mfe-open-account` | 5174 | Onboarding wizard, progress widget          |
 | Trading       | `@amp/mfe-trading`      | 5176 | Orders, positions, cash, portfolio widget   |
-| (сервиз)      | `@amp/api`              | 3000 | Domain-split Express API (4 домейна)        |
+| (сервиз)      | `@amp/api-java`         | 8088 | Tomcat WAR (Struts2 + Akka + Hibernate)     |
+| (тулинг)      | `@amp/swagger`          | —    | Hand-maintained OpenAPI контракт + codegen  |
 
-**Именуване:** `mfe-<domain>` + shell + api. Името на пакета кодира границата на екипа.
+**Именуване:** `mfe-<domain>` + shell + api-java + swagger. Името на пакета кодира границата на екипа.
 
 ---
 
@@ -255,15 +256,14 @@ CSS модулите на всеки MFE реферират `var(--bg)`, `var(--
 Cash ledger-ът на Trading, invoice-ите на Billing и identity записите на Open Account всички реферират един и същ `accountId` — но **никой екип не import-ва repository на друг**.
 
 ```
-api/src/domains/
-├── auth/          (Platform Core)
-├── billing/       (Billing)  — invoice-и tag-нати по accountId
-├── accounts/      (Open Account) — притежава identity, KYC, product type
-└── trading/       (Trading) — притежава positions + cash, keyed по accountId
+api-java/backend/src/main/java/com/amp/
+├── web/{auth,billing,accounts,trading}/       Struts actions (REST surface)
+├── service/{auth,billing,accounts,trading}/   Akka manager-и + message класове
+└── agent/{auth,billing,accounts,trading}/     *Trait (reactions) + *Process (state)
 ```
 
 Когато купиш AAPL на `acc_verified_1`:
-- Trading debit-ва cash-а на този акаунт в собствения си `Map<accountId, number>`.
+- Trading debit-ва cash-а на този акаунт в собствения си `Map<String, Double>` (`TradingProcess.CASH_LEDGER`).
 - Trading не пита Accounts дали акаунтът съществува (lazy-init на $1M).
 - Invoice-ите на Billing за същия акаунт са незасегнати.
 
@@ -274,10 +274,10 @@ api/src/domains/
 ## 11 · Генерация на типове: един Swagger, четири клиента (1.5 мин)
 
 ```
-api/src/swagger.ts        (source of truth, писан на ръка)
+packages/swagger/src/swagger.ts  (source of truth, писан на ръка)
         │
         ▼  generateSwagger.ts
-api/swagger.json
+packages/swagger/swagger.json
         │
         ├──► platform-shell/src/api/generated/   (само auth)
         ├──► mfe-billing/src/api/generated/
@@ -446,8 +446,8 @@ plugins: [
 | Auth SDK контракт              | 8      | `packages/platform-shell/src/auth/platformSdk.ts`               |
 | MFE auth interceptor           | 8      | `packages/mfe-trading/src/api/index.ts`                         |
 | Theme токени                   | 9      | `packages/platform-shell/src/index.css`                         |
-| Cross-domain accountId         | 10     | `packages/api/src/domains/trading/trading.repository.ts`        |
-| Swagger → 4 клиента            | 11     | `packages/api/package.json` → `generate:types:*`                |
+| Cross-domain accountId         | 10     | `packages/api-java/backend/src/main/java/com/amp/agent/trading/TradingProcess.java` |
+| Swagger → 4 клиента            | 11     | `packages/swagger/package.json` → `generate:types:*`            |
 | CSS injection плъгин           | 12     | `packages/mfe-trading/vite.config.ts`                           |
 | MfeBoundary error state        | 14     | `packages/platform-shell/src/components/MfeBoundary.tsx`        |
 

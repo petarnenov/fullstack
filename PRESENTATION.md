@@ -61,9 +61,10 @@ Open the repo side by side:
 | Billing       | `@amp/mfe-billing`      | 5175 | Invoices, transactions, balance widget      |
 | Open Account  | `@amp/mfe-open-account` | 5174 | Onboarding wizard, progress widget          |
 | Trading       | `@amp/mfe-trading`      | 5176 | Orders, positions, cash, portfolio widget   |
-| (service)     | `@amp/api`              | 3000 | Domain-split Express API (4 domains)        |
+| (service)     | `@amp/api-java`         | 8088 | Tomcat WAR (Struts2 + Akka + Hibernate)     |
+| (tooling)     | `@amp/swagger`          | —    | Hand-maintained OpenAPI contract + codegen  |
 
-**Naming convention:** `mfe-<domain>` + shell + api. The package name encodes the team boundary.
+**Naming convention:** `mfe-<domain>` + shell + api-java + swagger. The package name encodes the team boundary.
 
 ---
 
@@ -255,15 +256,14 @@ Each MFE also defines its own fallback tokens in `index.css` so it works standal
 The Trading team's cash ledger, the Billing team's invoices, and the Open Account team's identity records all reference the same `accountId` — but **no team imports another's repository**.
 
 ```
-api/src/domains/
-├── auth/          (Platform Core)
-├── billing/       (Billing)  — invoices tagged by accountId
-├── accounts/      (Open Account) — owns identity, KYC, product type
-└── trading/       (Trading) — owns positions + cash, keyed by accountId
+api-java/backend/src/main/java/com/amp/
+├── web/{auth,billing,accounts,trading}/       Struts actions (REST surface)
+├── service/{auth,billing,accounts,trading}/   Akka managers + message classes
+└── agent/{auth,billing,accounts,trading}/     *Trait (reactions) + *Process (state)
 ```
 
 When you buy AAPL on `acc_verified_1`:
-- Trading debits that account's cash in its own `Map<accountId, number>`.
+- Trading debits that account's cash in its own `Map<String, Double>` (`TradingProcess.CASH_LEDGER`).
 - Trading doesn't ask Accounts if the account exists (lazy-init to $1M).
 - Billing's invoices for that account are unaffected.
 
@@ -274,10 +274,10 @@ When you buy AAPL on `acc_verified_1`:
 ## 11 · Type generation: one Swagger, four clients (1.5 min)
 
 ```
-api/src/swagger.ts        (source of truth, hand-written)
+packages/swagger/src/swagger.ts  (source of truth, hand-written)
         │
         ▼  generateSwagger.ts
-api/swagger.json
+packages/swagger/swagger.json
         │
         ├──► platform-shell/src/api/generated/   (auth only)
         ├──► mfe-billing/src/api/generated/
@@ -446,8 +446,8 @@ What we covered:
 | Auth SDK contract              | 8      | `packages/platform-shell/src/auth/platformSdk.ts`               |
 | MFE auth interceptor           | 8      | `packages/mfe-trading/src/api/index.ts`                         |
 | Theme tokens                   | 9      | `packages/platform-shell/src/index.css`                         |
-| Cross-domain accountId         | 10     | `packages/api/src/domains/trading/trading.repository.ts`        |
-| Swagger → 4 clients            | 11     | `packages/api/package.json` → `generate:types:*`                |
+| Cross-domain accountId         | 10     | `packages/api-java/backend/src/main/java/com/amp/agent/trading/TradingProcess.java` |
+| Swagger → 4 clients            | 11     | `packages/swagger/package.json` → `generate:types:*`            |
 | CSS injection plugin           | 12     | `packages/mfe-trading/vite.config.ts`                           |
 | MfeBoundary error state        | 14     | `packages/platform-shell/src/components/MfeBoundary.tsx`        |
 
