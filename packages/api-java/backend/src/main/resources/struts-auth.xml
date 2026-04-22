@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 6.0//EN"
+    "https://struts.apache.org/dtds/struts-6.0.dtd">
+<struts>
+    <package name="auth" extends="default-package" namespace="/api/auth">
+        <action name="login" class="com.amp.web.auth.LoginAction">
+            <result name="success" type="jsonResult" />
+        </action>
+        <action name="logout" class="com.amp.web.auth.LogoutAction">
+            <result name="success" type="jsonResult" />
+        </action>
+        <action name="me" class="com.amp.web.auth.MeAction">
+            <result name="success" type="jsonResult" />
+        </action>
+        <action name="demo-credentials" class="com.amp.web.auth.DemoCredentialsAction">
+            <result name="success" type="jsonResult" />
+        </action>
+    </package>
+</struts>

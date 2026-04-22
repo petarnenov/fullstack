@@ -1,0 +1,6 @@
+backend/.gradle/
+backend/build/
+backend/bin/
+backend/out/
+*.class
+*.log
