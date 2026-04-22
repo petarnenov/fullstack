@@ -2,51 +2,55 @@
 
 ## Why this repo exists
 
-A micro-frontend POC for a realistic platform. Three product teams (Billing, Open Account, Trading) ship features into a shared shell owned by a Platform Core team. Each team can develop, build, and deploy independently.
+A micro-frontend POC for a realistic platform. Four product teams (Billing, Open Account, Trading, Reporting) ship features into a shared shell owned by a Platform Core team. Each team can develop, build, and deploy independently. Three teams talk to a shared monolith directly; Reporting is the first to introduce a dedicated BFF in front of the monolith.
 
 ## Team and package map
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                   Asset Management Platform                          │
-│                                                                      │
-│  ┌──────────────────────────────────────────────────────────────┐   │
-│  │   platform-shell    (Platform Core team)  :5173  HOST        │   │
-│  │                                                              │   │
-│  │   • Routing, navigation, theme                               │   │
-│  │   • Auth (owns login, session, ProtectedRoute)               │   │
-│  │   • Dashboard  ── composes 3 widgets from 3 MFEs             │   │
-│  │   • /billing   ── lazy-loads remote BillingPage              │   │
-│  │   • /accounts  ── OpenAccountPage + injects Billing widget   │   │
-│  │                    into its billingSlot (slot composition)   │   │
-│  │   • /trading   ── lazy-loads remote TradingPage              │   │
-│  └──────────────────────────────────────────────────────────────┘   │
-│          │                  │                    │                  │
-│          │  Module Federation (runtime composition)                 │
-│          ▼                  ▼                    ▼                  │
-│  ┌───────────────┐  ┌──────────────────┐  ┌──────────────────┐     │
-│  │ mfe-billing   │  │ mfe-open-account │  │ mfe-trading      │     │
-│  │ :5175  REMOTE │  │ :5174  REMOTE    │  │ :5176  REMOTE    │     │
-│  │               │  │                  │  │                  │     │
-│  │ exposes:      │  │ exposes:         │  │ exposes:         │     │
-│  │  ./BillingPg  │  │  ./OpenAcctPg    │  │  ./TradingPage   │     │
-│  │  ./Outstndng… │  │  ./OnbrdngPrgrs… │  │  ./PortfolioW…   │     │
-│  └───────┬───────┘  └────────┬─────────┘  └────────┬─────────┘     │
-│          │                   │                     │                │
-│          │   HTTP (axios, same origin, Bearer)     │                │
-│          ▼                   ▼                     ▼                │
-│  ┌──────────────────────────────────────────────────────────────┐   │
-│  │   api-java  :8088  Tomcat WAR, Struts2 + Akka + Hibernate    │   │
-│  │                                                              │   │
-│  │   /api/auth/*      →  com.amp.web.auth      (Platform Core)  │   │
-│  │   /api/billing/*   →  com.amp.web.billing   (Billing, auth)  │   │
-│  │   /api/accounts/*  →  com.amp.web.accounts  (Open Account)   │   │
-│  │   /api/trading/*   →  com.amp.web.trading   (Trading, auth)  │   │
-│  │                                                              │   │
-│  │   Swagger doc hand-maintained in packages/swagger/           │   │
-│  └──────────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                       Asset Management Platform                               │
+│                                                                               │
+│  ┌───────────────────────────────────────────────────────────────────────┐   │
+│  │   platform-shell    (Platform Core team)  :5173  HOST                 │   │
+│  │                                                                       │   │
+│  │   • Routing, navigation, theme, auth                                  │   │
+│  │   • Dashboard  ── composes 4 widgets from 4 MFEs                      │   │
+│  │   • /billing   ── lazy-loads remote BillingPage                       │   │
+│  │   • /accounts  ── OpenAccountPage + Billing widget in billingSlot     │   │
+│  │   • /trading   ── lazy-loads remote TradingPage                       │   │
+│  │   • /reports   ── lazy-loads remote ReportingPage                     │   │
+│  │   • vite proxy: /api/reporting/* → :8090,  /api/* → :8088             │   │
+│  └───────────────────────────────────────────────────────────────────────┘   │
+│       │              │                │                 │                    │
+│       │  Module Federation (runtime composition)        │                    │
+│       ▼              ▼                ▼                 ▼                    │
+│ ┌───────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐     │
+│ │mfe-billing│  │mfe-open-     │  │ mfe-trading  │  │ mfe-reporting    │     │
+│ │:5175      │  │account :5174 │  │ :5176        │  │ :5177            │     │
+│ │           │  │              │  │              │  │                  │     │
+│ │exposes:   │  │exposes:      │  │exposes:      │  │exposes:          │     │
+│ │ BillingPg │  │ OpenAcctPg   │  │ TradingPage  │  │ ReportingPage    │     │
+│ │ Outstndng…│  │ OnbrdngPrg…  │  │ Portfolio…   │  │ ReportingSummary…│     │
+│ └─────┬─────┘  └──────┬───────┘  └──────┬───────┘  └─────────┬────────┘     │
+│       │               │                 │                    │               │
+│       │   HTTP (axios, Bearer, shell proxy)                  │               │
+│       ▼               ▼                 ▼                    ▼               │
+│ ┌──────────────────────────────────────────────┐  ┌──────────────────────┐  │
+│ │  api-java  :8088  (Platform Core infra)      │  │ bff-reporting  :8090 │  │
+│ │  Tomcat WAR, Struts2 + Akka + Hibernate      │◄─┤ Spring Boot fat jar  │  │
+│ │                                              │  │ (Reporting team)     │  │
+│ │  /api/auth/*      → web.auth      (Shell)    │  │                      │  │
+│ │  /api/billing/*   → web.billing   (Billing)  │  │ /api/reporting/*     │  │
+│ │  /api/accounts/*  → web.accounts  (Accounts) │  │  — aggregates over   │  │
+│ │  /api/trading/*   → web.trading   (Trading)  │  │    accounts+billing  │  │
+│ │                                              │  │    +trading in       │  │
+│ │  Swagger SoT: packages/swagger/              │  │    parallel, forwards│  │
+│ │                                              │  │    Bearer verbatim   │  │
+│ └──────────────────────────────────────────────┘  └──────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
+
+Two backends from the browser's point of view — but only the shell knows that. Each MFE sees exactly one axios base URL, which its vite proxy or the shell's proxy resolves. The monolith doesn't know `bff-reporting` exists; `bff-reporting` doesn't know which MFE it's serving.
 
 ## Module Federation contracts
 
@@ -60,6 +64,8 @@ Each remote declares what it exposes in its `vite.config.ts`. The host pulls the
 | `mfe_open_account` | `./OnboardingProgressWidget`   | `() => JSX`                     | Dashboard tile                                |
 | `mfe_trading`      | `./TradingPage`                | `() => JSX`                     | `/trading/*` route                            |
 | `mfe_trading`      | `./PortfolioWidget`            | `() => JSX`                     | Dashboard tile                                |
+| `mfe_reporting`    | `./ReportingPage`              | `() => JSX`                     | `/reports/*` route                            |
+| `mfe_reporting`    | `./ReportingSummaryWidget`     | `() => JSX`                     | Dashboard tile                                |
 
 The shell declares TypeScript ambient modules for these in `platform-shell/src/vite-env.d.ts` so imports are typed.
 
@@ -110,6 +116,45 @@ export default function OpenAccountPage({ billingSlot }: OpenAccountPageProps = 
 The ambient declaration in `platform-shell/src/vite-env.d.ts` carries the prop shape so the composition is type-checked in the shell.
 
 **Why this matters:** teams can evolve independently (Platform Core swaps the slot's contents without Open Account changing), yet cross-team widgets appear inside team-owned surfaces. No shared-UI package is needed. The shared `QueryClient` still drives invalidation — a `billingKeys.summary()` invalidation in Billing refreshes the widget wherever it happens to be mounted, including inside Open Account.
+
+## Backend topology: monolith + one BFF
+
+Three of the four MFEs (Billing, Open Account, Trading) call the monolith directly with their Bearer token attached. Reporting is the exception — it introduces a dedicated backend-for-frontend.
+
+```
+┌─────────────────┐     Bearer     ┌────────────────────┐
+│ mfe-billing     │ ─────────────► │                    │
+│ mfe-open-account│ ─────────────► │   api-java :8088   │
+│ mfe-trading     │ ─────────────► │   (monolith)       │
+└─────────────────┘                │                    │
+                                   │   Auth + Billing + │
+┌─────────────────┐                │   Accounts +       │
+│ mfe-reporting   │                │   Trading          │
+│                 │                │                    │
+│ baseURL =       │  Bearer        │                    │
+│ /api/reporting  │ ───────┐       │                    │
+└─────────────────┘        │       └─────────▲──────────┘
+                           │                 │
+                           ▼                 │ forwarded Bearer
+                   ┌────────────────┐        │
+                   │ bff-reporting  │ ───────┘
+                   │ :8090          │  WebClient fan-out:
+                   │ Spring Boot    │  /api/accounts, /api/billing/invoices,
+                   │                │  /api/trading/portfolio?accountId=…
+                   │ one endpoint:  │
+                   │ /summary       │
+                   └────────────────┘
+```
+
+**Why Reporting has a BFF and the others don't.**
+
+Billing, Accounts, Trading each serve one domain. Their MFEs already get back a shape that's close to what they render. Reporting is different — it wants a denormalised, cross-domain view. Without a BFF, the MFE would issue `2 + N` round-trips (accounts + invoices + one portfolio call per account) and join client-side. With a BFF, the MFE does one round-trip and the fan-out happens server-side, close to the monolith (localhost hop) and in parallel via `Mono.zip`. The BFF also owns a DTO (`AccountReport`) shaped for the MFE's table — the monolith doesn't need to know that shape exists.
+
+**Contract ownership.** `packages/swagger` remains the SoT for monolith endpoints. The BFF has its own OpenAPI, generated at runtime by springdoc (`/v3/api-docs`) and snapshotted to `packages/mfe-reporting/openapi-bff.json`. Two pipelines, no shared types between them.
+
+**Auth.** The BFF is deliberately not a token authority. The `Authorization` header arrives from the browser (via the shell proxy), `MonolithClient` forwards it verbatim on every outbound call, and the monolith makes the trust decision. `WebClientErrorAdvice` maps upstream 401/404/409 back to the same status code on the BFF response, so the MFE axios interceptor's `amp:auth-expired` handling works unchanged (see §Authentication).
+
+**When to add another BFF.** Same shape — a new `packages/bff-<team>/` fat jar on its own port, shell proxy gets a more-specific prefix, MFE locks its axios to `/api/<team>`. BFFs are per-team; never introduce BFF-to-BFF calls.
 
 ## Authentication
 
@@ -195,10 +240,10 @@ Agents are registered once in `atomatron.worker.agentsystem.AgentSystem.createAg
 
 ## Type generation
 
-One source of truth (Swagger) → two independent generated clients:
+Two independent pipelines — monolith-facing MFEs share one; Reporting has its own because its contract is BFF-owned.
 
 ```
-packages/swagger/src/swagger.ts
+packages/swagger/src/swagger.ts           (hand-written OpenAPI, monolith SoT)
         │
         ▼  tsx generateSwagger.ts
 packages/swagger/swagger.json
@@ -207,9 +252,17 @@ packages/swagger/swagger.json
         ├─→ mfe-billing/src/api/generated/          (via swagger-typescript-api)
         ├─→ mfe-open-account/src/api/generated/
         └─→ mfe-trading/src/api/generated/
+
+packages/bff-reporting  (springdoc reflects @RestController surface at runtime)
+        │
+        ▼  GET http://localhost:8090/v3/api-docs   (scripts/refresh-openapi.mjs)
+        │
+packages/mfe-reporting/openapi-bff.json            (committed snapshot)
+        │
+        └─→ mfe-reporting/src/api/generated/       (via swagger-typescript-api)
 ```
 
-Each package imports only the contract types it needs and uses plain axios for calls (see `src/api/index.ts`). The shell only fetches its own domain data (`/api/auth/*`) — all other data-fetching is owned by the team whose MFE renders the data.
+Each package imports only the contract types it needs and uses plain axios for calls (see `src/api/index.ts`). The shell only fetches its own domain data (`/api/auth/*`) — all other data-fetching is owned by the team whose MFE renders the data. `refresh-openapi.mjs` has a graceful fallback: if the BFF is down, codegen reuses the committed snapshot, so `npm run generate:types` never blocks on a running service.
 
 ## What's deliberately not included
 
@@ -225,6 +278,7 @@ Each package imports only the contract types it needs and uses plain axios for c
 - React 19, Vite 6, TypeScript 5, React Router 7, TanStack Query 5
 - `@originjs/vite-plugin-federation` for Module Federation
 - `vite-plugin-css-injected-by-js` for remote CSS
-- Java 17, Tomcat 9, Apache Struts 2, Akka 2.6 (Scala 2.13), Hibernate 5.6, H2, Flyway
-- Gradle 8 for the WAR build; `swagger-typescript-api` for frontend client generation
-- OpenAPI 3.0 contract hand-maintained in `packages/swagger`
+- **Monolith:** Java 17, Tomcat 9, Apache Struts 2, Akka 2.6 (Scala 2.13), Hibernate 5.6, H2, Flyway
+- **BFF:** Java 17, Spring Boot 3.4 (embedded Tomcat), Spring WebFlux `WebClient`, springdoc-openapi 2.7
+- Gradle 8 for both JVM builds; `swagger-typescript-api` for frontend client generation
+- OpenAPI 3.0 contracts hand-maintained in `packages/swagger` (monolith) and auto-generated by springdoc (BFF)

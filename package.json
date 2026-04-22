@@ -6,22 +6,27 @@
 		"packages/*"
 	],
 	"scripts": {
-		"generate:types": "npm run generate:types --workspace=@amp/swagger",
+		"generate:types": "npm run generate:types --workspace=@amp/swagger && npm run generate:types --workspace=@amp/mfe-reporting",
 		"build:shell": "npm run build --workspace=@amp/platform-shell",
 		"build:billing": "npm run build --workspace=@amp/mfe-billing",
 		"build:accounts": "npm run build --workspace=@amp/mfe-open-account",
 		"build:trading": "npm run build --workspace=@amp/mfe-trading",
-		"build": "npm run generate:types && npm run build:billing && npm run build:accounts && npm run build:trading && npm run build:shell",
+		"build:reporting": "npm run build --workspace=@amp/mfe-reporting",
+		"build:bff-reporting": "npm run build --workspace=@amp/bff-reporting",
+		"build": "npm run generate:types && npm run build:billing && npm run build:accounts && npm run build:trading && npm run build:reporting && npm run build:shell",
 		"dev:api-java": "bash scripts/dev-api-java.sh",
+		"dev:bff-reporting": "bash scripts/dev-bff-reporting.sh",
 		"dev:shell": "npm run dev --workspace=@amp/platform-shell",
 		"dev:billing": "npm run preview --workspace=@amp/mfe-billing",
 		"dev:accounts": "npm run preview --workspace=@amp/mfe-open-account",
 		"dev:trading": "npm run preview --workspace=@amp/mfe-trading",
+		"dev:reporting": "npm run preview --workspace=@amp/mfe-reporting",
 		"dev:billing:standalone": "npm run dev --workspace=@amp/mfe-billing",
 		"dev:accounts:standalone": "npm run dev --workspace=@amp/mfe-open-account",
 		"dev:trading:standalone": "npm run dev --workspace=@amp/mfe-trading",
-		"dev": "npm run generate:types && npm run build:billing && npm run build:accounts && npm run build:trading && concurrently -k --kill-others-on-fail -n api-java,billing,accounts,trading,shell -c red,yellow,cyan,magenta,green \"npm run dev:api-java\" \"npm run dev:billing\" \"npm run dev:accounts\" \"npm run dev:trading\" \"npm run dev:shell\"",
-		"kill:dev": "bash -c 'P=$(lsof -ti :5173 -i :5174 -i :5175 -i :5176 -i :8088 -i :8085 | sort -u); if [ -z \"$P\" ]; then echo \"no dev processes on 5173-5176/8088\"; exit 0; fi; echo \"$P\" | xargs kill 2>/dev/null; sleep 1; S=$(lsof -ti :5173 -i :5174 -i :5175 -i :5176 -i :8088 -i :8085 | sort -u); if [ -n \"$S\" ]; then echo \"$S\" | xargs kill -9 2>/dev/null; fi; echo \"dev ports cleared\"'"
+		"dev:reporting:standalone": "npm run dev --workspace=@amp/mfe-reporting",
+		"dev": "npm run generate:types && npm run build:billing && npm run build:accounts && npm run build:trading && npm run build:reporting && concurrently -k --kill-others-on-fail -n api-java,bff-reporting,billing,accounts,trading,reporting,shell -c red,blue,yellow,cyan,magenta,white,green \"npm run dev:api-java\" \"npm run dev:bff-reporting\" \"npm run dev:billing\" \"npm run dev:accounts\" \"npm run dev:trading\" \"npm run dev:reporting\" \"npm run dev:shell\"",
+		"kill:dev": "bash -c 'P=$(lsof -ti :5173 -i :5174 -i :5175 -i :5176 -i :5177 -i :8088 -i :8085 -i :8090 | sort -u); if [ -z \"$P\" ]; then echo \"no dev processes on 5173-5177/8088/8090\"; exit 0; fi; echo \"$P\" | xargs kill 2>/dev/null; sleep 1; S=$(lsof -ti :5173 -i :5174 -i :5175 -i :5176 -i :5177 -i :8088 -i :8085 -i :8090 | sort -u); if [ -n \"$S\" ]; then echo \"$S\" | xargs kill -9 2>/dev/null; fi; echo \"dev ports cleared\"'"
 	},
 	"devDependencies": {
 		"concurrently": "^8.2.2",

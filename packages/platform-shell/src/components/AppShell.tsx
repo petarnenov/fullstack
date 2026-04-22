@@ -70,6 +70,15 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <TeamBadge team="trading" />
           </NavLink>
           <NavLink
+            to="/reports"
+            className={({ isActive }) =>
+              `${styles.navItem} ${isActive ? styles.navItemActive : ""}`
+            }
+          >
+            <span>Reports</span>
+            <TeamBadge team="reporting" />
+          </NavLink>
+          <NavLink
             to="/settings"
             className={({ isActive }) =>
               `${styles.navItem} ${isActive ? styles.navItemActive : ""}`

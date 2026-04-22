@@ -14,12 +14,14 @@ npm install
 npm run dev
 ```
 
-Wait until you see all five process names in the `concurrently` output (`api-java`, `billing`, `accounts`, `trading`, `shell`). Open:
+Wait until you see all seven process names in the `concurrently` output (`api-java`, `bff-reporting`, `billing`, `accounts`, `trading`, `reporting`, `shell`). Open:
 
 - http://localhost:5173 — platform shell (main demo surface)
 - http://localhost:5174 — `mfe-open-account` standalone
 - http://localhost:5175 — `mfe-billing` standalone
-- `packages/swagger/src/swagger.ts` — the hand-maintained OpenAPI contract (there is no runtime Swagger UI — the backend is Java Tomcat, serving only `/api/*`)
+- http://localhost:5177 — `mfe-reporting` standalone (empty when BFF isn't reachable)
+- http://localhost:8090/swagger-ui.html — the Reporting BFF's auto-generated Swagger UI (handy for section 7)
+- `packages/swagger/src/swagger.ts` — the hand-maintained OpenAPI contract for the monolith (there is no runtime Swagger UI — Tomcat serves only `/api/*`)
 
 Have the repo open in the editor. Keep a terminal visible for restart demos.
 
@@ -27,18 +29,19 @@ Have the repo open in the editor. Keep a terminal visible for restart demos.
 
 ## 0 · Context (2 min)
 
-> "This is an asset-management platform. In a real org, you'd have Billing, Open Account, Trading, and a Platform Core team. Each ships at its own cadence, with its own tests, its own on-call. How do we let them share one app without tripping over each other?"
+> "This is an asset-management platform. In a real org, you'd have Billing, Open Account, Trading, Reporting, and a Platform Core team. Each ships at its own cadence, with its own tests, its own on-call. How do we let them share one app without tripping over each other?"
 
 Draw it:
 
 ```
-          Platform Core (shell)
-          /       |         \
-         /        |          \
-    Billing  Open Account  Trading
+              Platform Core (shell)
+            /      |       \       \
+           /       |        \       \
+      Billing  Open Acct  Trading  Reporting
+                                    └── its own BFF
 ```
 
-Key question: **what crosses the team boundary?** Answer we'll demo: a component name and its props. Nothing else.
+Key question: **what crosses the team boundary?** Answer we'll demo: a component name and its props, plus (for Reporting) a dedicated backend. Nothing else.
 
 ---
 
@@ -48,15 +51,17 @@ Open `packages/`:
 
 ```
 packages/
-├── api-java/            # Tomcat WAR (Struts2 + Akka + Hibernate), 4 domains
-├── swagger/             # Hand-maintained OpenAPI contract + codegen
+├── api-java/            # Monolith: Tomcat WAR (Struts2 + Akka + Hibernate), 4 domains
+├── bff-reporting/       # Spring Boot BFF for Reporting team only — its own JVM
+├── swagger/             # Hand-maintained OpenAPI contract for the monolith
 ├── platform-shell/      # Host
 ├── mfe-billing/         # Remote
 ├── mfe-open-account/    # Remote
-└── mfe-trading/         # Remote
+├── mfe-trading/         # Remote
+└── mfe-reporting/       # Remote — talks only to bff-reporting, never the monolith
 ```
 
-Show `package.json` names: `@amp/api-java`, `@amp/swagger`, `@amp/platform-shell`, `@amp/mfe-billing`, `@amp/mfe-open-account`, `@amp/mfe-trading`.
+Show `package.json` names. Call out the asymmetry: **three MFEs talk to a shared monolith directly; the fourth has its own BFF**. We'll come back to why in section 7.
 
 Point at `ARCHITECTURE.md` — the team-ownership diagram.
 
@@ -89,21 +94,23 @@ Open http://localhost:5173 — Dashboard.
 
 > "This page looks like a single product. It isn't. Watch."
 
-Show the four tiles on the Dashboard:
+Show the five tiles on the Dashboard:
 
 - **Outstanding balance** — orange "Billing team" badge.
 - **Onboarding progress** — teal "Open Account team" badge.
 - **Portfolio** — violet "Trading team" badge.
+- **Reporting summary** — sky-blue "Reporting team" badge. *(This one has a secret we come back to in section 7.)*
 - **Platform health** — indigo "Platform Core" badge.
 
-Point at the bottom of the page: "How this page is composed" — reads off the ownership explicitly.
+Point at the bottom of the page: "How this page is composed" — reads off the ownership explicitly, and notes that Reporting's data is served by a dedicated BFF rather than the monolith.
 
-Open `packages/platform-shell/src/pages/DashboardPage.tsx`. Three lines that matter:
+Open `packages/platform-shell/src/pages/DashboardPage.tsx`. Four lines that matter:
 
 ```tsx
 const OutstandingBalanceWidget = lazy(() => import("mfe_billing/OutstandingBalanceWidget"));
 const OnboardingProgressWidget = lazy(() => import("mfe_open_account/OnboardingProgressWidget"));
-const PortfolioWidget         = lazy(() => import("mfe_trading/PortfolioWidget"));
+const PortfolioWidget          = lazy(() => import("mfe_trading/PortfolioWidget"));
+const ReportingSummaryWidget   = lazy(() => import("mfe_reporting/ReportingSummaryWidget"));
 ```
 
 > "That's it. That's the integration. The shell has no source code for these widgets. It knows a name and a shape."
@@ -117,6 +124,7 @@ federation({
     mfe_billing: "http://localhost:5175/assets/remoteEntry.js",
     mfe_open_account: "http://localhost:5174/assets/remoteEntry.js",
     mfe_trading: "http://localhost:5176/assets/remoteEntry.js",
+    mfe_reporting: "http://localhost:5177/assets/remoteEntry.js",
   },
   shared: ["react", "react-dom", "@tanstack/react-query"],
 }),
@@ -195,7 +203,74 @@ Same key family. Different component. Different module. Different team.
 
 ---
 
-## 7 · Cash flows through Trading (optional, 2 min)
+## 7 · Reporting — adding a BFF without touching the monolith (4 min)
+
+> "The fourth team we added last. Their MFE works exactly like the others from the shell's point of view — same federation contract, same composition patterns. But their backend is different."
+
+Navigate to **/reports**. Point at the table: four accounts, each with Billing outstanding + Accounts status + Trading equity joined on one row. Compare with the dashboard tile that shows the same aggregate.
+
+Open DevTools → Network → XHR. Refresh `/reports`. Point at:
+
+```
+GET /api/reporting/summary   200   (one request)
+```
+
+Now open the BFF log in the terminal (look at the `bff-reporting` stripe in `concurrently`). You'll see multiple outbound requests fan out — `GET /api/accounts`, `GET /api/billing/invoices`, then one `/api/trading/portfolio?accountId=…` per account, in parallel.
+
+> "One round-trip from the browser. Six from the BFF. If the MFE talked to the monolith directly, it would be six round-trips from the browser — every position request paying the full browser-to-server RTT instead of localhost. This is the classic BFF trade: move the fan-out server-side where latency is cheap and you can shape the response for the specific UI."
+
+Open `packages/bff-reporting/src/main/java/com/amp/bff/reporting/service/ReportAggregator.java`:
+
+```java
+Mono.zip(accounts, invoices)
+  .flatMap(tuple -> Flux.fromIterable(tuple.getT1())
+    .flatMap(a -> monolith.getPortfolio(a.id(), authHeader)
+      .map(p -> buildReport(a, invoicesFor(a), p)))
+    .collectList());
+```
+
+> "That's the entire aggregation — `Mono.zip` runs the first two calls in parallel, `flatMap` runs the per-account portfolio calls in parallel after that."
+
+**Three things to highlight**, fast:
+
+1. **Proxy wiring.** Open `packages/platform-shell/vite.config.ts`:
+
+   ```ts
+   "/api/reporting": { target: "http://localhost:8090" },  // BFF
+   "/api":           { target: "http://localhost:8088" },  // monolith
+   ```
+
+   Longest-prefix-first match. And in `packages/mfe-reporting/src/api/index.ts`:
+
+   ```ts
+   const http = axios.create({ baseURL: "/api/reporting" });
+   ```
+
+   > "The MFE *can't* accidentally call the monolith. Its axios instance is locked to `/api/reporting`. The shell proxy is the fence."
+
+2. **Contract ownership.** Open `packages/mfe-reporting/openapi-bff.json` — this is a committed snapshot of the BFF's OpenAPI. Open http://localhost:8090/swagger-ui.html — same contract, served live by springdoc.
+
+   ```bash
+   npm run generate:types --workspace=@amp/mfe-reporting
+   ```
+
+   > "The BFF owns its own contract. `@amp/swagger` describes the monolith. Two pipelines. Reporting's types come from the BFF; billing/accounts/trading come from `@amp/swagger`. No shared types between the two worlds — each team controls its seam."
+
+3. **Auth flows through, not around.** Open `packages/bff-reporting/src/main/java/com/amp/bff/reporting/client/MonolithClient.java`:
+
+   ```java
+   headers.set(HttpHeaders.AUTHORIZATION, authHeader);
+   ```
+
+   > "The BFF doesn't validate the token. It forwards whatever the browser sent to the monolith, and lets the monolith decide. If you log out, the monolith 401s, the BFF forwards the 401, the MFE dispatches `amp:auth-expired`, the shell logs you out. Same flow as the other MFEs — one auth authority."
+
+**Payoff.** Show the dashboard widget one more time (`ReportingSummaryWidget`). Then `/reports`. They render the same aggregated data. Why? Because both components use `reportingKeys.summary()` as the React Query key, and React Query is a federation-shared singleton — one BFF call, two surfaces.
+
+> "Adding this team added one MFE, one BFF, and one proxy rule. The monolith learned nothing. The other three teams learned nothing. That's the scaling story."
+
+---
+
+## 8 · Cash flows through Trading (optional, 2 min)
 
 Navigate to **/trading**. Show the account selector strip at the top — four accounts, each seeded at $1,000,000 (primary has less because of seeded positions).
 
@@ -213,7 +288,7 @@ Try a massive buy (like 100,000 NVDA on `acc_kyc_1`) — rejected with "Insuffic
 
 ---
 
-## 8 · Slot composition — a second pattern (2 min)
+## 9 · Slot composition — a second pattern (2 min)
 
 > "The dashboard was the shell assembling a new surface. Here's the reverse: a team's own page reserves a slot for another team's widget."
 
@@ -263,7 +338,7 @@ Tie it back to the shared cache: navigate to **/billing**, pay an invoice, retur
 
 ---
 
-## 9 · End-to-end workflow across teams (2 min)
+## 10 · End-to-end workflow across teams (2 min)
 
 > "Let me show you a flow that touches every team."
 
@@ -274,7 +349,7 @@ Tie it back to the shared cache: navigate to **/billing**, pay an invoice, retur
 
 ---
 
-## 10 · Types & API contract (2 min)
+## 11 · Types & API contract (2 min)
 
 Open `packages/swagger/src/swagger.ts` briefly — point at `tags: ["Billing"]` and `tags: ["Accounts"]`. Mention: the Swagger doc is the contract SoT; the Java tier in `packages/api-java` implements it.
 
@@ -290,7 +365,7 @@ Point at the output: same Swagger, two independent generated client folders. Eac
 
 ---
 
-## 11 · Tradeoffs (2 min)
+## 12 · Tradeoffs (2 min)
 
 Be honest. Show this slide or just read it aloud:
 
@@ -305,10 +380,11 @@ Be honest. Show this slide or just read it aloud:
 - The shell is a new thing to own; someone has to run Platform Core.
 - Runtime composition = slower first paint than a monolith SPA.
 - Contract drift between teams needs discipline (typed exposes help).
+- A BFF is another deployable with its own on-call rota. Only introduce one when the MFE genuinely needs cross-domain aggregation or a reshaped DTO; a single-domain MFE is better off talking to the monolith directly.
 
 ---
 
-## 12 · Q&A (pad)
+## 13 · Q&A (pad)
 
 Common questions worth preparing:
 
@@ -317,6 +393,8 @@ Common questions worth preparing:
 - **"What about Server Components / Next.js App Router?"** Different story; federation targets SPA / client-heavy apps. Sometimes both apply.
 - **"Testing?"** Each MFE tests its own exposed components in isolation. Shell has integration tests that mock the remotes.
 - **"Versioning?"** Remote URLs can be versioned (`/v2/remoteEntry.js`); import maps or manifests resolve the current version.
+- **"Why a BFF for Reporting and not for Billing/Accounts/Trading?"** The other three serve one domain each; the MFE already gets back something close to what it renders. Reporting wants a cross-domain denormalised view — the aggregation work has to happen somewhere, and the BFF puts it next to the monolith (localhost hop, parallel fan-out) rather than on the browser (internet hop, sequential).
+- **"Why Spring Boot for the BFF and Struts+Akka for the monolith?"** Because the stack is an implementation detail the monolith shouldn't dictate. Different team, different code base, different deployment. They only share the HTTP contract.
 
 ---
 
@@ -341,3 +419,11 @@ Common questions worth preparing:
 | Widget using same cache key         | `packages/mfe-billing/src/widgets/OutstandingBalanceWidget.tsx` |
 | Slot composition (MFE side)         | `packages/mfe-open-account/src/pages/OpenAccountPage.tsx` — `billingSlot` prop |
 | Slot composition (shell side)       | `packages/platform-shell/src/App.tsx` — `/accounts` route |
+| Reporting page + table              | http://localhost:5173/reports                    |
+| Reporting dashboard widget          | `packages/mfe-reporting/src/widgets/ReportingSummaryWidget.tsx` |
+| BFF aggregator (Mono.zip fan-out)   | `packages/bff-reporting/src/main/java/com/amp/bff/reporting/service/ReportAggregator.java` |
+| BFF → monolith client (Bearer fwd)  | `packages/bff-reporting/src/main/java/com/amp/bff/reporting/client/MonolithClient.java` |
+| BFF upstream-status pass-through    | `packages/bff-reporting/src/main/java/com/amp/bff/reporting/api/WebClientErrorAdvice.java` |
+| BFF OpenAPI snapshot (committed)    | `packages/mfe-reporting/openapi-bff.json`        |
+| Split proxy (longest-prefix match)  | `packages/platform-shell/vite.config.ts`         |
+| BFF Swagger UI (live)               | http://localhost:8090/swagger-ui.html            |

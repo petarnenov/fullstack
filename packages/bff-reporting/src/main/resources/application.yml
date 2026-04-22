@@ -1,0 +1,26 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: bff-reporting
+  main:
+    # spring-boot-starter-webflux on the classpath would otherwise swap the
+    # servlet engine for reactive Netty; we want the Tomcat servlet stack for
+    # the REST surface and use WebClient only as an outbound HTTP client.
+    web-application-type: servlet
+
+amp:
+  monolith:
+    base-url: http://localhost:8088
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    root: INFO
+    com.amp.bff.reporting: DEBUG

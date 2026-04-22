@@ -14,3 +14,9 @@ coverage
 *.db-journal
 *.db-wal
 *.db-shm
+
+# Playwright MCP scratch (snapshots, traces from local browser automation)
+.playwright-mcp/
+
+# Screenshots captured during ad-hoc verification runs
+/*.png

@@ -37,3 +37,13 @@ declare module "mfe_trading/PortfolioWidget" {
   const PortfolioWidget: React.ComponentType;
   export default PortfolioWidget;
 }
+
+declare module "mfe_reporting/ReportingPage" {
+  const ReportingPage: React.ComponentType;
+  export default ReportingPage;
+}
+
+declare module "mfe_reporting/ReportingSummaryWidget" {
+  const ReportingSummaryWidget: React.ComponentType;
+  export default ReportingSummaryWidget;
+}

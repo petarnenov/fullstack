@@ -12,6 +12,9 @@ const OnboardingProgressWidget = lazy(
   () => import("mfe_open_account/OnboardingProgressWidget"),
 );
 const PortfolioWidget = lazy(() => import("mfe_trading/PortfolioWidget"));
+const ReportingSummaryWidget = lazy(
+  () => import("mfe_reporting/ReportingSummaryWidget"),
+);
 
 export default function DashboardPage() {
   const user = useAuthenticatedUser();
@@ -74,13 +77,26 @@ export default function DashboardPage() {
 
         <article className={styles.widgetCell}>
           <div className={styles.widgetHeader}>
+            <span className={styles.widgetLabel}>Reporting summary</span>
+            <TeamBadge team="reporting" />
+          </div>
+          <MfeBoundary label="Reporting summary widget" fallbackHeight={160}>
+            <ReportingSummaryWidget />
+          </MfeBoundary>
+          <Link to="/reports" className={styles.widgetLink}>
+            Go to Reports →
+          </Link>
+        </article>
+
+        <article className={styles.widgetCell}>
+          <div className={styles.widgetHeader}>
             <span className={styles.widgetLabel}>Platform health</span>
             <TeamBadge team="shell" />
           </div>
           <div className={styles.shellTiles}>
             <ShellStat label="Shell version" value="1.0.0" />
             <ShellStat label="Tenant" value={user.tenantId} />
-            <ShellStat label="Remotes loaded" value="3" />
+            <ShellStat label="Remotes loaded" value="4" />
             <ShellStat label="Role" value={user.role} />
           </div>
         </article>
@@ -107,6 +123,13 @@ export default function DashboardPage() {
             <TeamBadge team="trading" /> owns the{" "}
             <code>PortfolioWidget</code>, exposed from{" "}
             <code>mfe-trading</code>.
+          </li>
+          <li>
+            <TeamBadge team="reporting" /> owns the{" "}
+            <code>ReportingSummaryWidget</code>, exposed from{" "}
+            <code>mfe-reporting</code>. Unlike the others, the data behind it
+            is served by a dedicated BFF (<code>bff-reporting</code>), not by
+            the monolith directly.
           </li>
         </ul>
       </section>

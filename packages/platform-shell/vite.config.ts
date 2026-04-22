@@ -14,10 +14,16 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, REPO_ROOT, "");
   const PUBLIC_HOST = env.PUBLIC_HOST || "localhost";
 
-  // On this branch the Java tier (packages/api-java, Tomcat :8088) is the
-  // only backend — the Node Express API is not started. All /api/* traffic
-  // lands on Tomcat; domains Java doesn't serve yet will 404.
+  // Two backends from the shell's perspective:
+  //   - /api/reporting/*  → bff-reporting Spring Boot on :8090 (domain-specific BFF).
+  //   - /api/*            → monolith api-java on Tomcat :8088.
+  // Order matters — vite matches longest-prefix first, and the reporting MFE
+  // must never reach the monolith directly (see CLAUDE.md constraint #8).
   const apiProxy = {
+    "/api/reporting": {
+      target: "http://localhost:8090",
+      changeOrigin: true,
+    },
     "/api": {
       target: "http://localhost:8088",
       changeOrigin: true,
@@ -37,6 +43,7 @@ export default defineConfig(({ mode }) => {
           mfe_billing: `http://${PUBLIC_HOST}:5175/assets/remoteEntry.js`,
           mfe_open_account: `http://${PUBLIC_HOST}:5174/assets/remoteEntry.js`,
           mfe_trading: `http://${PUBLIC_HOST}:5176/assets/remoteEntry.js`,
+          mfe_reporting: `http://${PUBLIC_HOST}:5177/assets/remoteEntry.js`,
         },
         shared: ["react", "react-dom", "@tanstack/react-query"],
       }),

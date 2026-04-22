@@ -1,0 +1,29 @@
+{
+	"name": "@amp/mfe-reporting",
+	"version": "1.0.0",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite --port 5177",
+		"build": "vite build",
+		"preview": "vite preview --port 5177",
+		"generate:types": "node scripts/refresh-openapi.mjs && swagger-typescript-api generate -p ./openapi-bff.json -o src/api/generated -n index.ts --modular --axios --extract-request-params --extract-request-body --extract-response-body --extract-response-error"
+	},
+	"dependencies": {
+		"@tanstack/react-query": "^5.90.8",
+		"axios": "^1.13.2",
+		"react": "19.2.0",
+		"react-dom": "19.2.0"
+	},
+	"devDependencies": {
+		"@originjs/vite-plugin-federation": "^1.4.1",
+		"@types/react": "^19.0.1",
+		"@types/react-dom": "^19.0.1",
+		"@vitejs/plugin-react": "^4.3.4",
+		"babel-plugin-react-compiler": "^1.0.0",
+		"swagger-typescript-api": "^13.0.22",
+		"typescript": "^5.6.3",
+		"vite": "^6.0.3",
+		"vite-plugin-css-injected-by-js": "^3.5.2"
+	}
+}

@@ -15,6 +15,7 @@ const OutstandingBalanceWidget = lazy(
   () => import("mfe_billing/OutstandingBalanceWidget"),
 );
 const TradingPage = lazy(() => import("mfe_trading/TradingPage"));
+const ReportingPage = lazy(() => import("mfe_reporting/ReportingPage"));
 
 export default function App() {
   return (
@@ -57,6 +58,14 @@ export default function App() {
                   element={
                     <MfeBoundary label="Trading MFE" fallbackHeight={400}>
                       <TradingPage />
+                    </MfeBoundary>
+                  }
+                />
+                <Route
+                  path="/reports/*"
+                  element={
+                    <MfeBoundary label="Reporting MFE" fallbackHeight={400}>
+                      <ReportingPage />
                     </MfeBoundary>
                   }
                 />
