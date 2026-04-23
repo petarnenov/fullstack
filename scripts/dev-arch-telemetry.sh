@@ -13,6 +13,21 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SVC_DIR="$REPO_ROOT/packages/arch-telemetry"
 SVC_JAR="$SVC_DIR/build/libs/amp-arch-telemetry.jar"
 
+if [ -f "$REPO_ROOT/.env" ]; then
+    set -a; . "$REPO_ROOT/.env"; set +a
+fi
+
+if [ -n "${JAVA_HOME_DEMO:-}" ] && [ -x "$JAVA_HOME_DEMO/bin/java" ]; then
+    export JAVA_HOME="$JAVA_HOME_DEMO"
+    export PATH="$JAVA_HOME/bin:$PATH"
+fi
+
+# TieredStopAtLevel=1 keeps the C1 JIT but disables C2. C2 has been crashing
+# on this host across multiple JDKs, which points at RAM/kernel rather than
+# a JVM bug — until that's fixed offline, C1-only is the safe default for
+# the demo. Small perf hit, no functional change.
+JAVA_SAFE_OPTS="-XX:TieredStopAtLevel=1"
+
 skip() {
     echo "[arch-telemetry] $1"
     echo "[arch-telemetry] idle — visualiser at :5199 will be empty until this is fixed"
@@ -35,4 +50,4 @@ if [ ! -f "$SVC_JAR" ]; then
 fi
 
 echo "[arch-telemetry] starting on :8091"
-exec java -jar "$SVC_JAR"
+exec java $JAVA_SAFE_OPTS -jar "$SVC_JAR"

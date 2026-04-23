@@ -33,5 +33,12 @@ if command -v lsof >/dev/null 2>&1 && lsof -i :8088 >/dev/null 2>&1; then
     skip "skipping: port 8088 already in use"
 fi
 
+# Pin a known-good JDK when .env sets JAVA_HOME_DEMO — the system default
+# may be a Corretto build that crashes on this stack (see .env for context).
+if [ -n "${JAVA_HOME_DEMO:-}" ] && [ -x "$JAVA_HOME_DEMO/bin/java" ]; then
+    export JAVA_HOME="$JAVA_HOME_DEMO"
+    export PATH="$JAVA_HOME/bin:$PATH"
+fi
+
 cd "$REPO_ROOT/packages/api-java"
 exec make start
