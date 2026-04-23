@@ -25,8 +25,8 @@ public class AuthProcess {
     private static final int ARGON2_MEMORY_KB = 65536;
     private static final int ARGON2_PARALLELISM = 4;
 
-    private static final long ACCESS_TTL_MS = 15L * 60 * 1000;           // 15 min
-    private static final long REFRESH_TTL_MS = 7L * 24 * 60 * 60 * 1000; // 7 days
+    private static final long ACCESS_TTL_MS = 1L * 60 * 1000;            // 1 min
+    private static final long REFRESH_TTL_MS = 5L * 60 * 1000;           // 5 min
 
     /**
      * Hand-picked demo credentials so the login page autofill keeps working
