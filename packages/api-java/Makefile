@@ -67,12 +67,18 @@ $(TOMCAT_BASE)/conf/server.xml:
 		'# This file takes priority over $$CATALINA_HOME/bin/setenv.sh so the' \
 		'# host Tomcat install can ship heavy flags (e.g. -Xmx16g, JRebel) without' \
 		'# bleeding into this project.' \
-		'CATALINA_OPTS="-Dproject.root=$(PROJECT_DIR) -Xmx1g -XX:MaxDirectMemorySize=512m"' \
+		'# ParallelGC instead of G1, TieredStopAtLevel=1 to disable C2 JIT,' \
+		'# 2g heap (vs 1g) — all three are workarounds for fatal SIGSEGVs seen' \
+		'# on this host across multiple JDKs (Corretto 17.0.14/17.0.18, OpenJDK' \
+		'# 21), always in C2 or G1 native frames. That pattern points at RAM or' \
+		'# kernel 6.11, not a JVM bug. C1-only + ParallelGC dodges the crashing' \
+		'# code paths until the host is fixed offline.' \
+		'CATALINA_OPTS="-Dproject.root=$(PROJECT_DIR) -Xmx2g -XX:MaxDirectMemorySize=512m -XX:+UseParallelGC -XX:TieredStopAtLevel=1"' \
 		> $(TOMCAT_BASE)/bin/setenv.sh
 	@chmod +x $(TOMCAT_BASE)/bin/setenv.sh
 	@echo "Ports in $(TOMCAT_BASE)/conf/server.xml:"
 	@grep -E 'Server port=|Connector port=' $(TOMCAT_BASE)/conf/server.xml | head -5 || true
-	@echo "Written $(TOMCAT_BASE)/bin/setenv.sh (project.root + 1g heap)."
+	@echo "Written $(TOMCAT_BASE)/bin/setenv.sh (project.root + 2g heap + ParallelGC + C1-only)."
 
 # Re-seed from a fresh $(TOMCAT_HOME) (run after switching Tomcat versions).
 .PHONY: reset-base

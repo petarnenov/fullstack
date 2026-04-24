@@ -58,7 +58,7 @@ export function Storyline() {
 
 const panelStyle: React.CSSProperties = {
   position: "absolute",
-  left: 16,
+  right: 216,
   bottom: 16,
   width: 520,
   background: "rgba(15, 23, 42, 0.92)",
